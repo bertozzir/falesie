@@ -159,7 +159,6 @@
   <header>
     <h1>Falesie</h1>
     <button id="ricarica" type="button">Ricarica</button>
-    <a id="schermoIntero" href="#" target="_top" hidden>Schermo intero ↗</a>
     <div class="agg" id="agg"></div>
   </header>
 
@@ -188,6 +187,7 @@
 <dialog id="scheda" aria-labelledby="schTitolo"></dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="meteo.js"></script>
 <script>
 var COL = { bagnata: "#d64545", variabile: "#e0a526", asciutta: "#2e9e5b", nd: "#8a9199" };
 
@@ -297,34 +297,39 @@ function avvia() {
   if (!window.matchMedia("(max-width: 800px)").matches) {
     document.getElementById("legDet").setAttribute("open", "");
   }
-  // Link a schermo intero: solo se la pagina e' incorporata in un iframe.
-  try {
-    if (window.top !== window.self) {
-      google.script.run.withSuccessHandler(function(u) {
-        if (!u) return;
-        var a = document.getElementById("schermoIntero");
-        a.href = u; a.hidden = false;
-      }).getUrlApp();
-    }
-  } catch (e) {}
+  
   disegnaLegenda();
   carica();
   window.addEventListener("resize", function() { mappa.invalidateSize(); });
 }
 
-function carica() {
+async function carica() {
   var el = document.getElementById("elenco");
-  el.innerHTML = '<li class="msg">Caricamento dati…</li>';
-  google.script.run
-    .withSuccessHandler(function(r) {
-      DATI = r.falesie || [];
-      document.getElementById("agg").textContent = r.aggiornato ? "Aggiornato al " + r.aggiornato : "";
-      aggiorna(true);
-    })
-    .withFailureHandler(function(e) {
-      el.innerHTML = '<li class="msg">Impossibile leggere i dati: ' + esc(e.message || e) + "</li>";
-    })
-    .getDati();
+  var btn = document.getElementById("ricarica");
+  btn.disabled = true;
+  el.innerHTML = '<li class="msg">Caricamento falesie…</li>';
+  try {
+    var risp = await fetch("falesie.json", { cache: "no-store" });
+    if (!risp.ok) throw new Error("falesie.json non trovato (errore " + risp.status + ")");
+    var elenco = await risp.json();
+
+    var r = await calcolaMeteo(elenco, function(fatte, totale) {
+      el.innerHTML = '<li class="msg">Calcolo meteo… ' + fatte + " di " + totale + " falesie</li>";
+    });
+
+    DATI = r.falesie || [];
+    var testo = "Dati aggiornati al " + r.aggiornato;
+    if (r.errori && r.errori.length) {
+      testo += " · " + r.errori.length + " con errori";
+      console.warn("Errori nel calcolo:", r.errori);
+    }
+    document.getElementById("agg").textContent = testo;
+    aggiorna(true);
+  } catch (e) {
+    el.innerHTML = '<li class="msg">Impossibile leggere i dati: ' + esc(e.message || e) + "</li>";
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function visibili() {
