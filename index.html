@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Falesie</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f4f1;
+    --panel: #ffffff;
+    --ink: #1f2428;
+    --muted: #66707a;
+    --line: #dcdad4;
+    --accent: #2f5d62;
+    --bagnata: #d64545;
+    --variabile: #e0a526;
+    --asciutta: #2e9e5b;
+    --nd: #8a9199;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #16191c;
+      --panel: #1f2428;
+      --ink: #eceae5;
+      --muted: #9aa3ab;
+      --line: #343b41;
+      --accent: #6fb3b8;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100%;
+    min-height: 620px;
+  }
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 650; letter-spacing: .01em; }
+  header .agg { color: var(--muted); font-size: 13px; margin-left: auto; text-align: right; }
+  button, select, input {
+    font: inherit; color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  aside {
+    display: flex; flex-direction: column;
+    min-height: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+  }
+  .filtri { padding: 10px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+  .filtri input { width: 100%; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { padding: 3px 10px; border-radius: 999px; font-size: 13px; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .conta { color: var(--muted); font-size: 13px; }
+
+  #elenco { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+  #elenco li { border-bottom: 1px solid var(--line); }
+  #elenco button {
+    width: 100%; text-align: left; border: 0; border-radius: 0;
+    display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center;
+    padding: 10px 12px; background: transparent;
+  }
+  #elenco button:hover { background: var(--bg); }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .nome { font-weight: 600; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .tag { font-size: 13px; color: var(--muted); }
+
+  .mappaWrap { position: relative; min-height: 0; }
+  #map { position: absolute; inset: 0; }
+  .controllo {
+    position: absolute; z-index: 500; top: 10px; right: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 10px; display: grid; gap: 6px; max-width: 220px;
+  }
+  .controllo label { font-size: 13px; color: var(--muted); }
+  .controllo select { width: 100%; }
+  .legDet summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  .legDet .legenda { margin-top: 6px; }
+  .legenda { display: grid; gap: 3px; font-size: 12px; }
+  .legenda span { display: flex; align-items: center; gap: 6px; }
+  .legenda i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+
+  .pin {
+    min-width: 26px; height: 26px; padding: 0 5px;
+    border-radius: 13px; border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.45);
+    color: #fff; font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    white-space: nowrap;
+  }
+
+  dialog {
+    width: min(560px, 94vw); max-height: 88vh;
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px; padding: 0;
+  }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .sch-testa { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px 10px; }
+  .sch-testa h2 { margin: 0; font-size: 20px; }
+  .sch-testa .chiudi { margin-left: auto; }
+  .badge { display: inline-block; color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .sch-corpo { padding: 0 18px 18px; overflow-y: auto; max-height: calc(88vh - 90px); }
+  .stima { margin: 6px 0 12px; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--bg); }
+  h3 { font-size: 14px; margin: 14px 0 6px; }
+  dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+  dl div { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  dt { color: var(--muted); font-size: 12.5px; }
+  dd { margin: 0; font-weight: 600; }
+  a { color: var(--accent); }
+
+  .msg { padding: 16px; color: var(--muted); }
+  #schermoIntero { font-size: 13px; white-space: nowrap; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; text-decoration: none; }
+
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(220px, 42vh) minmax(0, 1fr); height: 100vh; height: 100dvh; min-height: 560px; }
+    .mappaWrap { grid-row: 2; min-height: 0; }
+    /* Pannello compatto: niente etichetta, legenda chiusa, larghezza ridotta */
+    .controllo { top: 8px; right: 8px; padding: 5px; gap: 4px; max-width: 150px; width: 150px; border-radius: 6px; }
+    .controllo label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .controllo select { font-size: 16px; padding: 4px 6px; text-overflow: ellipsis; }
+    .legDet summary { font-size: 12px; }
+    aside { grid-row: 3; border-right: 0; min-height: 0; border-top: 1px solid var(--line); }
+    header { padding: 6px 10px; }
+    .filtri { padding: 6px 10px; gap: 6px; }
+    header .agg { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Falesie</h1>
+    <button id="ricarica" type="button">Ricarica</button>
+    <a id="schermoIntero" href="#" target="_top" hidden>Schermo intero ↗</a>
+    <div class="agg" id="agg"></div>
+  </header>
+
+  <aside>
+    <div class="filtri">
+      <input id="cerca" type="search" placeholder="Cerca falesia o comune" aria-label="Cerca falesia o comune">
+      <div class="chips" id="chips"></div>
+      <div class="conta" id="conta"></div>
+    </div>
+    <ul id="elenco"></ul>
+  </aside>
+
+  <div class="mappaWrap">
+    <div id="map"></div>
+    <div class="controllo">
+      <label for="livello">Mostra sulla mappa</label>
+      <select id="livello"></select>
+      <details class="legDet" id="legDet">
+        <summary>Legenda</summary>
+        <div class="legenda" id="legenda"></div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<dialog id="scheda" aria-labelledby="schTitolo"></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+var COL = { bagnata: "#d64545", variabile: "#e0a526", asciutta: "#2e9e5b", nd: "#8a9199" };
+
+function statoDa(indice) {
+  if (indice === null || indice === undefined) return { chiave: "nd", testo: "Non disponibile", col: COL.nd };
+  if (indice >= 65) return { chiave: "bagnata", testo: "Bagnata", col: COL.bagnata };
+  if (indice >= 35) return { chiave: "variabile", testo: "Variabile", col: COL.variabile };
+  return { chiave: "asciutta", testo: "Asciutta", col: COL.asciutta };
+}
+
+function scala(v, soglie, colori) {
+  if (v === null) return COL.nd;
+  for (var i = 0; i < soglie.length; i++) if (v < soglie[i]) return colori[i];
+  return colori[colori.length - 1];
+}
+
+var C_GRIGIO = "#8a9199";
+
+// Livelli selezionabili sulla mappa.
+var LIVELLI = {
+  stato: {
+    nome: "Stato (bagnata / asciutta)",
+    col: function(f) { return statoDa(f.indice).col; },
+    testo: function(f) { return f.indice === null ? "?" : String(Math.round(f.indice)); },
+    legenda: [[COL.asciutta, "Asciutta (indice < 35)"], [COL.variabile, "Variabile (35-64)"], [COL.bagnata, "Bagnata (65 o più)"]]
+  },
+  p3h: {
+    nome: "Pioggia prevista 3 ore",
+    col: function(f) { return f.p3h === null ? COL.nd : scala(f.p3h, [0.1, 0.5, 2], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
+    testo: function(f) { return f.p3h === null ? "?" : f.p3h.toFixed(1); },
+    legenda: [[C_GRIGIO, "Nessuna (< 0,1 mm)"], ["#5aa9f0", "0,1-0,5 mm"], ["#2f6fdb", "0,5-2 mm"], ["#1b3fa8", "Oltre 2 mm"]]
+  },
+  p72: {
+    nome: "Pioggia ultime 72 ore",
+    col: function(f) { return f.p72 === null ? COL.nd : scala(f.p72, [0.5, 5, 20], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
+    testo: function(f) { return f.p72 === null ? "?" : f.p72.toFixed(0); },
+    legenda: [[C_GRIGIO, "Meno di 0,5 mm"], ["#5aa9f0", "0,5-5 mm"], ["#2f6fdb", "5-20 mm"], ["#1b3fa8", "Oltre 20 mm"]]
+  },
+  temp: {
+    nome: "Temperatura media",
+    col: function(f) { return f.temp === null ? COL.nd : scala(f.temp, [5, 15, 25], ["#3b82f6", "#22b8cf", "#f59e0b", "#ef4444"]); },
+    testo: function(f) { return f.temp === null ? "?" : f.temp.toFixed(0) + "°"; },
+    legenda: [["#3b82f6", "Sotto 5 °C"], ["#22b8cf", "5-15 °C"], ["#f59e0b", "15-25 °C"], ["#ef4444", "Oltre 25 °C"]]
+  },
+  vento: {
+    nome: "Vento medio",
+    col: function(f) { return f.vento === null ? COL.nd : scala(f.vento, [10, 20, 35], [C_GRIGIO, "#22b8cf", "#3b82f6", "#7c3aed"]); },
+    testo: function(f) { return f.vento === null ? "?" : f.vento.toFixed(0); },
+    legenda: [[C_GRIGIO, "Sotto 10 km/h"], ["#22b8cf", "10-20 km/h"], ["#3b82f6", "20-35 km/h"], ["#7c3aed", "Oltre 35 km/h"]]
+  },
+  um: {
+    nome: "Umidità media",
+    col: function(f) { return f.um === null ? COL.nd : scala(f.um, [50, 70, 85], ["#f59e0b", "#22b8cf", "#3b82f6", "#1b3fa8"]); },
+    testo: function(f) { return f.um === null ? "?" : f.um.toFixed(0) + "%"; },
+    legenda: [["#f59e0b", "Sotto 50%"], ["#22b8cf", "50-70%"], ["#3b82f6", "70-85%"], ["#1b3fa8", "Oltre 85%"]]
+  }
+};
+
+var DATI = [];
+var mappa, gruppo, marcatori = [];
+var livello = "stato";
+var filtroStato = "tutte";
+
+function esc(t) {
+  return String(t === null || t === undefined ? "" : t)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function num(v, dec, unita) {
+  return v === null || v === undefined ? "n.d." : v.toFixed(dec).replace(".", ",") + (unita ? " " + unita : "");
+}
+
+function avvia() {
+  mappa = L.map("map").setView([44.5, 11.3], 8);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18, attribution: "© OpenStreetMap"
+  }).addTo(mappa);
+  gruppo = L.layerGroup().addTo(mappa);
+
+  var sel = document.getElementById("livello");
+  Object.keys(LIVELLI).forEach(function(k) {
+    var o = document.createElement("option");
+    o.value = k; o.textContent = LIVELLI[k].nome;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", function() { livello = sel.value; disegnaMappa(false); disegnaLegenda(); });
+
+  var chips = [["tutte", "Tutte"], ["asciutta", "Asciutte"], ["variabile", "Variabili"], ["bagnata", "Bagnate"]];
+  var cont = document.getElementById("chips");
+  chips.forEach(function(c) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = c[1];
+    b.setAttribute("data-k", c[0]);
+    b.setAttribute("aria-pressed", c[0] === "tutte" ? "true" : "false");
+    b.addEventListener("click", function() {
+      filtroStato = c[0];
+      Array.prototype.forEach.call(cont.children, function(x) {
+        x.setAttribute("aria-pressed", x.getAttribute("data-k") === filtroStato ? "true" : "false");
+      });
+      aggiorna(false);
+    });
+    cont.appendChild(b);
+  });
+
+  document.getElementById("cerca").addEventListener("input", function() { aggiorna(false); });
+  document.getElementById("ricarica").addEventListener("click", carica);
+
+  if (!window.matchMedia("(max-width: 800px)").matches) {
+    document.getElementById("legDet").setAttribute("open", "");
+  }
+  // Link a schermo intero: solo se la pagina e' incorporata in un iframe.
+  try {
+    if (window.top !== window.self) {
+      google.script.run.withSuccessHandler(function(u) {
+        if (!u) return;
+        var a = document.getElementById("schermoIntero");
+        a.href = u; a.hidden = false;
+      }).getUrlApp();
+    }
+  } catch (e) {}
+  disegnaLegenda();
+  carica();
+  window.addEventListener("resize", function() { mappa.invalidateSize(); });
+}
+
+function carica() {
+  var el = document.getElementById("elenco");
+  el.innerHTML = '<li class="msg">Caricamento dati…</li>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      DATI = r.falesie || [];
+      document.getElementById("agg").textContent = r.aggiornato ? "Aggiornato al " + r.aggiornato : "";
+      aggiorna(true);
+    })
+    .withFailureHandler(function(e) {
+      el.innerHTML = '<li class="msg">Impossibile leggere i dati: ' + esc(e.message || e) + "</li>";
+    })
+    .getDati();
+}
+
+function visibili() {
+  var q = document.getElementById("cerca").value.trim().toLowerCase();
+  return DATI.filter(function(f) {
+    if (filtroStato !== "tutte" && statoDa(f.indice).chiave !== filtroStato) return false;
+    if (!q) return true;
+    return (f.nome + " " + f.comune).toLowerCase().indexOf(q) !== -1;
+  });
+}
+
+function aggiorna(adattaMappa) {
+  disegnaElenco();
+  disegnaMappa(adattaMappa);
+}
+
+function disegnaElenco() {
+  var lista = visibili().slice().sort(function(a, b) { return a.nome.localeCompare(b.nome, "it"); });
+  var el = document.getElementById("elenco");
+  document.getElementById("conta").textContent = lista.length + " di " + DATI.length + " falesie";
+  el.innerHTML = "";
+  if (!lista.length) {
+    el.innerHTML = '<li class="msg">Nessuna falesia corrisponde ai filtri.</li>';
+    return;
+  }
+  lista.forEach(function(f) {
+    var s = statoDa(f.indice);
+    var li = document.createElement("li");
+    var b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML =
+      '<span class="dot" style="background:' + s.col + '"></span>' +
+      '<span><span class="nome">' + esc(f.nome) + '</span><br><span class="sub">' + esc(f.comune) + "</span></span>" +
+      '<span class="tag">' + s.testo + "</span>";
+    b.addEventListener("click", function() {
+      mappa.setView([f.lat, f.lon], Math.max(mappa.getZoom(), 11));
+      apriScheda(f);
+    });
+    li.appendChild(b);
+    el.appendChild(li);
+  });
+}
+
+function disegnaMappa(adatta) {
+  gruppo.clearLayers();
+  var L_ = LIVELLI[livello];
+  var punti = [];
+  visibili().forEach(function(f) {
+    var icona = L.divIcon({
+      className: "",
+      html: '<div class="pin" style="background:' + L_.col(f) + '">' + esc(L_.testo(f)) + "</div>",
+      iconSize: null, iconAnchor: [14, 14]
+    });
+    var m = L.marker([f.lat, f.lon], { icon: icona, title: f.nome, keyboard: true });
+    m.on("click", function() { apriScheda(f); });
+    m.addTo(gruppo);
+    punti.push([f.lat, f.lon]);
+  });
+  if (adatta && punti.length) mappa.fitBounds(punti, { padding: [30, 30], maxZoom: 11 });
+}
+
+function disegnaLegenda() {
+  var el = document.getElementById("legenda");
+  el.innerHTML = LIVELLI[livello].legenda.map(function(r) {
+    return '<span><i style="background:' + r[0] + '"></i>' + r[1] + "</span>";
+  }).join("");
+}
+
+function apriScheda(f) {
+  var s = statoDa(f.indice);
+  var meteo = String(f.meteo || "");
+  var meteoHtml = /^https?:\/\//i.test(meteo)
+    ? '<a href="' + esc(meteo) + '" target="_blank" rel="noopener">Apri previsioni</a>'
+    : esc(meteo) || "n.d.";
+
+  function voce(t, v) { return "<div><dt>" + t + "</dt><dd>" + (v === "" || v === null ? "n.d." : v) + "</dd></div>"; }
+
+  var html =
+    '<div class="sch-testa"><div><h2 id="schTitolo">' + esc(f.nome) + "</h2>" +
+    '<div class="sub">' + esc(f.comune) + "</div>" +
+    '<span class="badge" style="background:' + s.col + '">' + s.testo +
+    (f.indice !== null ? " · indice " + Math.round(f.indice) : "") + "</span></div>" +
+    '<button class="chiudi" type="button" id="chiudiScheda">Chiudi</button></div>' +
+    '<div class="sch-corpo">' +
+    '<div class="stima"><strong>Asciugatura</strong><br>' + (esc(f.stima) || "Stima non disponibile") + "</div>" +
+    "<h3>Informazioni</h3><dl>" +
+    voce("Esposizione e quota", esc(f.esp)) +
+    voce("Periodo", esc(f.periodo)) +
+    voce("Gradi (da/a)", esc(f.gradi)) +
+    voce("Numero di vie", esc(f.vie)) +
+    voce("Mi piace", esc(f.mipiace)) +
+    voce("Previsioni", meteoHtml) +
+    "</dl>" +
+    "<h3>Prossime 3 ore</h3><dl>" +
+    voce("Pioggia prevista", num(f.p3h, 1, "mm")) +
+    "</dl>" +
+    "<h3>Ultime 72 ore</h3><dl>" +
+    voce("Pioggia", num(f.p72, 1, "mm")) +
+    voce("Temperatura media", num(f.temp, 1, "°C")) +
+    voce("Umidità media", num(f.um, 0, "%")) +
+    voce("Vento medio", num(f.vento, 1, "km/h")) +
+    voce("Direzione vento", num(f.dir, 0, "°")) +
+    voce("Radiazione media", num(f.rad, 0, "W/m²")) +
+    voce("Evapotraspirazione", num(f.evapo, 2, "mm")) +
+    voce("Coordinate", f.lat.toFixed(5) + ", " + f.lon.toFixed(5)) +
+    "</dl></div>";
+
+  var d = document.getElementById("scheda");
+  d.innerHTML = html;
+  document.getElementById("chiudiScheda").addEventListener("click", function() { d.close(); });
+  if (!d.open) d.showModal();
+}
+
+document.getElementById("scheda").addEventListener("click", function(e) {
+  if (e.target === this) this.close();
+});
+
+avvia();
+</script>
+</body>
+</html>
