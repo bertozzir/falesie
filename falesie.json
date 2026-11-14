@@ -9,7 +9,7 @@
 {"nome":"Ceraino","comune":"VR-Rivoli_Veronese","mipiace":"4","gradi":"4b/7b+","vie":">100","periodo":"x-Pri-x-Aut","esp":"E-115","lat":45.5649,"lon":10.824,"meteo":"http://www.ilmeteo.it/meteo/Rivoli_Veronese"},
 {"nome":"Costa","comune":"VI-Valstagna","mipiace":"2","gradi":"5b/8a","vie":"90","periodo":"x-Pri-Est-Aut","esp":"S-350","lat":45.9029167,"lon":11.6952667,"meteo":"http://www.ilmeteo.it/meteo/Valstagna"},
 {"nome":"Eremo S.Donato [Villaga]","comune":"VI-Villaga","mipiace":"0","gradi":"5c/8c","vie":"40","periodo":"x-Pri-x-Aut","esp":"E-50","lat":45.4061623,"lon":11.5203885,"meteo":"http://www.ilmeteo.it/meteo/Villaga"},
-{"nome":"Falesia Dimenticata","comune":"TR-San Lorenzo Dorsino","mipiace":"5","gradi":"4a/8a","vie":"72","periodo":"Inv-Pri-x-Aut","esp":"S-600","lat":46.0653,"lon":10.9121,"meteo":"http://www.ilmeteo.it/meteo/San_Lorenzo-Dorsino"}, 
+{"nome":"Falesia Dimenticata","comune":"TR-San Lorenzo Dorsino","mipiace":"5","gradi":"4a/8a","vie":"72","periodo":"Inv-Pri-x-Aut","esp":"S-600","lat":46.0653,"lon":10.9121,"meteo":"http://www.ilmeteo.it/meteo/San_Lorenzo_Dorsino"}, 
 {"nome":"Ferentillo","comune":"TR-Ferentillo","mipiace":"4","gradi":"3b/8b+","vie":">300","periodo":"Inv-Pri-x-Aut","esp":"Varie-270","lat":42.6184,"lon":12.7965,"meteo":"http://www.ilmeteo.it/meteo/Ferentillo"},
 {"nome":"Finale Ligure [Rocca di Perti]","comune":"SV-Finale_Ligure","mipiace":"4","gradi":"5c/8a","vie":">200","periodo":"Inv-Pri-x-Aut","esp":"Varie-50","lat":44.194,"lon":8.3103,"meteo":"http://www.ilmeteo.it/meteo/Finale_Ligure"},
 {"nome":"Fosso dell'Eremo","comune":"PU-Piobbico","mipiace":"5","gradi":"5a/8a","vie":"50","periodo":"x-Pri-Est-Aut","esp":"ESE-380","lat":43.587,"lon":12.535,"meteo":"http://www.ilmeteo.it/meteo/Piobbico"},
