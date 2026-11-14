@@ -57,8 +57,16 @@
     background: var(--panel);
     border-bottom: 1px solid var(--line);
   }
-  header h1 { font-size: 18px; margin: 0; font-weight: 650; letter-spacing: .01em; }
-  header .agg { color: var(--muted); font-size: 13px; margin-left: auto; text-align: right; }
+  header { position: relative; }
+  .iconBtn { display: flex; align-items: center; padding: 6px 8px; }
+  #ricarica { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  #ricarica .ico { display: block; }
+  #ricarica:disabled { cursor: progress; }
+  #ricarica:disabled .ico { animation: gira 1s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .menu { position: absolute; top: calc(100% - 4px); left: 10px; z-index: 2000; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.25); padding: 4px; min-width: 160px; }
+  .menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; }
+  .menu button:hover { background: var(--bg); }
   button, select, input {
     font: inherit; color: var(--ink);
     background: var(--panel);
@@ -78,10 +86,11 @@
   }
   .filtri { padding: 10px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
   .filtri input { width: 100%; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip { padding: 3px 10px; border-radius: 999px; font-size: 13px; }
+  .riga { display: flex; align-items: center; gap: 8px; }
+  .chips { display: flex; gap: 5px; flex-wrap: wrap; flex: 1 1 auto; }
+  .chip { padding: 3px 8px; border-radius: 999px; font-size: 13px; }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .conta { color: var(--muted); font-size: 13px; }
+  .conta { color: var(--muted); font-size: 13px; white-space: nowrap; }
 
   #elenco { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
   #elenco li { border-bottom: 1px solid var(--line); }
@@ -153,23 +162,32 @@
     aside { grid-row: 3; border-right: 0; min-height: 0; border-top: 1px solid var(--line); }
     header { padding: 6px 10px; }
     .filtri { padding: 6px 10px; gap: 6px; }
-    header .agg { font-size: 12px; }
+    #ricarica { font-size: 12px; }
   }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>Falesie</h1>
-    <button id="ricarica" type="button">Ricarica</button>
-    <div class="agg" id="agg"></div>
+    <button id="menuBtn" class="iconBtn" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="menu" id="menu" hidden>
+      <button type="button" id="voceAbout">About</button>
+    </div>
+    <button id="ricarica" type="button" title="Ricarica i dati" aria-label="Ricarica i dati">
+      <svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="agg"></span>
+    </button>
   </header>
 
   <aside>
     <div class="filtri">
       <input id="cerca" type="search" placeholder="Cerca falesia o comune" aria-label="Cerca falesia o comune">
-      <div class="chips" id="chips"></div>
-      <div class="conta" id="conta"></div>
+        <div class="riga">
+        <div class="chips" id="chips"></div>
+        <div class="conta" id="conta" title="Falesie visualizzate su totali"></div>
+      </div>
     </div>
     <ul id="elenco"></ul>
   </aside>
@@ -188,6 +206,21 @@
 </div>
 
 <dialog id="scheda" aria-labelledby="schTitolo"></dialog>
+
+<dialog id="about" aria-labelledby="abTitolo">
+  <div class="sch-testa">
+    <div>
+      <h2 id="abTitolo">Falesie</h2>
+      <div class="sub">Stato di bagnatura delle falesie</div>
+    </div>
+    <button class="chiudi" type="button" id="chiudiAbout">Chiudi</button>
+  </div>
+  <div class="sch-corpo">
+    <p>La pagina stima se le falesie sono bagnate o asciutte in base alla pioggia, alla temperatura, all'umidità, al vento e al sole delle ultime 72 ore e delle previsioni.</p>
+    <p>L'indice va da 0 (probabilmente asciutta) a 100 (molto bagnata). È solo una stima indicativa: controlla sempre le condizioni reali della parete.</p>
+    <p class="sub">Dati meteo: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Mappa: © OpenStreetMap, Leaflet.</p>
+  </div>
+</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="meteo.js"></script>
@@ -211,6 +244,12 @@ var C_GRIGIO = "#8a9199";
 
 // Livelli selezionabili sulla mappa.
 var LIVELLI = {
+  falesie: {
+    nome: "Falesie",
+    col: function(f) { return statoDa(f.indice).col; },
+    testo: function(f) { return iniziale(f.nome); },
+    legenda: [[COL.asciutta, "Asciutta (indice < 35)"], [COL.variabile, "Variabile (35-64)"], [COL.bagnata, "Bagnata (65 o più)"]]
+  },
   stato: {
     nome: "Stato (bagnata / asciutta)",
     col: function(f) { return statoDa(f.indice).col; },
@@ -251,9 +290,13 @@ var LIVELLI = {
 
 var DATI = [];
 var mappa, gruppo, marcatori = [];
-var livello = "stato";
+var livello = "falesie";
 var filtroStato = "tutte";
 
+function iniziale(nome) {
+  var m = String(nome || "").match(/[A-Za-zÀ-ÿ0-9]/);
+  return m ? m[0].toUpperCase() : "?";
+}
 function esc(t) {
   return String(t === null || t === undefined ? "" : t)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -295,7 +338,28 @@ function avvia() {
   });
 
   document.getElementById("cerca").addEventListener("input", function() { aggiorna(false); });
-  document.getElementById("ricarica").addEventListener("click", carica);
+    document.getElementById("ricarica").addEventListener("click", carica);
+
+  var menuBtn = document.getElementById("menuBtn");
+  var menu = document.getElementById("menu");
+  var about = document.getElementById("about");
+  function chiudiMenu() {
+    menu.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
+  }
+  menuBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    menu.hidden = !menu.hidden;
+    menuBtn.setAttribute("aria-expanded", menu.hidden ? "false" : "true");
+  });
+  document.addEventListener("click", chiudiMenu);
+  document.addEventListener("keydown", function(e) { if (e.key === "Escape") chiudiMenu(); });
+  document.getElementById("voceAbout").addEventListener("click", function() {
+    chiudiMenu();
+    about.showModal();
+  });
+  document.getElementById("chiudiAbout").addEventListener("click", function() { about.close(); });
+  about.addEventListener("click", function(e) { if (e.target === about) about.close(); });
 
   if (!window.matchMedia("(max-width: 800px)").matches) {
     document.getElementById("legDet").setAttribute("open", "");
@@ -321,7 +385,7 @@ async function carica() {
     });
 
     DATI = r.falesie || [];
-    var testo = "Dati aggiornati al " + r.aggiornato;
+    var testo = r.aggiornato;
     if (r.errori && r.errori.length) {
       testo += " · " + r.errori.length + " con errori";
       console.warn("Errori nel calcolo:", r.errori);
@@ -352,7 +416,7 @@ function aggiorna(adattaMappa) {
 function disegnaElenco() {
   var lista = visibili().slice().sort(function(a, b) { return a.nome.localeCompare(b.nome, "it"); });
   var el = document.getElementById("elenco");
-  document.getElementById("conta").textContent = lista.length + " di " + DATI.length + " falesie";
+  document.getElementById("conta").textContent = lista.length + " di " + DATI.length;
   el.innerHTML = "";
   if (!lista.length) {
     el.innerHTML = '<li class="msg">Nessuna falesia corrisponde ai filtri.</li>';
