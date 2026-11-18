@@ -105,8 +105,12 @@
   .sub { color: var(--muted); font-size: 13px; }
   .tag { font-size: 13px; color: var(--muted); }
 
-  .mappaWrap { position: relative; min-height: 0; }
-  #map { position: absolute; inset: 0; }
+  .mappaWrap { position: relative; min-height: 0; display: flex; flex-direction: column; }
+  #map { flex: 1; min-height: 0; }
+  .giorni { display: flex; gap: 6px; padding: 6px 8px; background: var(--panel); border-top: 1px solid var(--line); }
+  .giorni:empty { display: none; }
+  .giorni button { flex: 1; padding: 6px 2px; font-size: clamp(11px, 3.2vw, 13px); white-space: nowrap; }
+  .giorni button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .controllo {
     position: absolute; z-index: 500; top: 10px; right: 10px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
@@ -205,6 +209,7 @@
 
   <div class="mappaWrap">
     <div id="map"></div>
+    <div class="giorni" id="giorni"></div>
     <div class="controllo">
       <label for="livello">Mostra sulla mappa</label>
       <select id="livello"></select>
@@ -249,6 +254,7 @@
 </dialog>
   
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="modello.js"></script>
 <script src="meteo.js"></script>
 <script>
 var COL = { bagnata: "#d64545", variabile: "#e0a526", asciutta: "#2e9e5b", nd: "#8a9199" };
@@ -282,11 +288,11 @@ var LIVELLI = {
     testo: function(f) { return f.indice === null ? "?" : String(Math.round(f.indice)); },
     legenda: [[COL.asciutta, "Asciutta (indice < 35)"], [COL.variabile, "Variabile (35-64)"], [COL.bagnata, "Bagnata (65 o più)"]]
   },
-  p3h: {
-    nome: "Pioggia prevista 3 ore",
-    col: function(f) { return f.p3h === null ? COL.nd : scala(f.p3h, [0.1, 0.5, 2], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
-    testo: function(f) { return f.p3h === null ? "?" : f.p3h.toFixed(1); },
-    legenda: [[C_GRIGIO, "Nessuna (< 0,1 mm)"], ["#5aa9f0", "0,1-0,5 mm"], ["#2f6fdb", "0,5-2 mm"], ["#1b3fa8", "Oltre 2 mm"]]
+  pg: {
+    nome: "Pioggia del giorno scelto",
+    col: function(f) { return f.pg === null || f.pg === undefined ? COL.nd : scala(f.pg, [0.1, 1, 5], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
+    testo: function(f) { return f.pg === null || f.pg === undefined ? "?" : f.pg.toFixed(1); },
+    legenda: [[C_GRIGIO, "Nessuna (< 0,1 mm)"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "Oltre 5 mm"]]
   },
   p72: {
     nome: "Pioggia ultime 72 ore",
@@ -318,6 +324,36 @@ var DATI = [];
 var mappa, gruppo, marcatori = [];
 var livello = "falesie";
 var filtroStato = "tutte";
+
+// Giorni mostrati dai pulsanti e giorno scelto (0 = Oggi)
+var GIORNI = [];
+var giornoSel = 0;
+
+// Copia in ogni falesia i valori del giorno scelto
+function applicaGiorno() {
+  DATI.forEach(function(f) {
+    f.indice = f.indici ? f.indici[giornoSel] : null;
+    f.pg = f.pioggeGiorno ? f.pioggeGiorno[giornoSel] : null;
+  });
+}
+
+function disegnaGiorni() {
+  var el = document.getElementById("giorni");
+  el.innerHTML = "";
+  GIORNI.forEach(function(nome, i) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = nome;
+    b.setAttribute("aria-pressed", i === giornoSel ? "true" : "false");
+    b.addEventListener("click", function() {
+      giornoSel = i;
+      applicaGiorno();
+      disegnaGiorni();
+      aggiorna(false);
+    });
+    el.appendChild(b);
+  });
+}
 
 // Tutte le falesie del file falesie.json
 var TUTTE = [];
@@ -518,6 +554,10 @@ async function carica() {
     });
 
     DATI = r.falesie || [];
+    GIORNI = r.giorni || [];
+    if (giornoSel >= GIORNI.length) giornoSel = 0;
+    applicaGiorno();
+    disegnaGiorni();
     var testo = r.aggiornato;
     if (r.errori && r.errori.length) {
       testo += " · " + r.errori.length + " con errori";
@@ -625,8 +665,8 @@ function apriScheda(f) {
     voce("Mi piace", esc(f.mipiace)) +
     voce("Previsioni", meteoHtml) +
     "</dl>" +
-    "<h3>Prossime 3 ore</h3><dl>" +
-    voce("Pioggia prevista", num(f.p3h, 1, "mm")) +
+    "<h3>" + esc(GIORNI[giornoSel] || "Oggi") + "</h3><dl>" +
+    voce("Pioggia prevista nella giornata", num(f.pg, 1, "mm")) +
     "</dl>" +
     "<h3>Ultime 72 ore</h3><dl>" +
     voce("Pioggia", num(f.p72, 1, "mm")) +
