@@ -150,7 +150,17 @@
 
   .msg { padding: 16px; color: var(--muted); }
   #schermoIntero { font-size: 13px; white-space: nowrap; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; text-decoration: none; }
-
+  #elencoSel { list-style: none; margin: 0; padding: 0; }
+  #elencoSel li { border-bottom: 1px solid var(--line); }
+  #elencoSel button {
+    width: 100%; text-align: left; border: 0; border-radius: 0;
+    display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: center;
+    padding: 8px 4px; background: transparent;
+  }
+  #elencoSel button:hover { background: var(--bg); }
+  .cuore { font-size: 22px; line-height: 1; color: var(--muted); }
+  #elencoSel button[aria-pressed="true"] .cuore { color: var(--bagnata); }
+  
   @media (max-width: 800px) {
     .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(220px, 42vh) minmax(0, 1fr); height: 100vh; height: 100dvh; min-height: 560px; }
     .mappaWrap { grid-row: 2; min-height: 0; }
@@ -173,6 +183,7 @@
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
     <div class="menu" id="menu" hidden>
+      <button type="button" id="voceFalesie">Falesie</button>
       <button type="button" id="voceAbout">About</button>
     </div>
     <button id="ricarica" type="button" title="Ricarica i dati" aria-label="Ricarica i dati">
@@ -222,6 +233,21 @@
   </div>
 </dialog>
 
+<dialog id="selezione" aria-labelledby="selTitolo">
+  <div class="sch-testa">
+    <div>
+      <h2 id="selTitolo">Falesie</h2>
+      <div class="sub" id="contaSel"></div>
+    </div>
+    <button class="chiudi" type="button" id="chiudiSel">Chiudi</button>
+  </div>
+  <div class="sch-corpo">
+    <p class="sub" style="margin-top:0">Tocca il cuore per scegliere le falesie da seguire. Mappa, elenco e meteo riguarderanno solo quelle.</p>
+    <input id="cercaSel" type="search" placeholder="Cerca falesia o comune" aria-label="Cerca falesia o comune" style="width:100%;margin-bottom:8px">
+    <ul id="elencoSel"></ul>
+  </div>
+</dialog>
+  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="meteo.js"></script>
 <script>
@@ -293,6 +319,83 @@ var mappa, gruppo, marcatori = [];
 var livello = "falesie";
 var filtroStato = "tutte";
 
+// Tutte le falesie del file falesie.json
+var TUTTE = [];
+// Nomi delle falesie scelte (salvati nel browser)
+var PREFERITE = leggiPreferite();
+var primoAvvio = (PREFERITE === null);
+if (primoAvvio) PREFERITE = [];
+var selezioneCambiata = false;
+
+function leggiPreferite() {
+  try {
+    var v = JSON.parse(localStorage.getItem("falesiePreferite"));
+    return Array.isArray(v) ? v : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function salvaPreferite() {
+  try {
+    localStorage.setItem("falesiePreferite", JSON.stringify(PREFERITE));
+  } catch (e) {
+    console.warn("Impossibile salvare le preferite", e);
+  }
+}
+
+function apriFalesie() {
+  var d = document.getElementById("selezione");
+  document.getElementById("cercaSel").value = "";
+  disegnaSelezione();
+  if (!d.open) d.showModal();
+}
+
+function aggiornaContaSel() {
+  document.getElementById("contaSel").textContent =
+    PREFERITE.length + " selezionate su " + TUTTE.length;
+}
+
+function disegnaSelezione() {
+  var q = document.getElementById("cercaSel").value.trim().toLowerCase();
+  var el = document.getElementById("elencoSel");
+  el.innerHTML = "";
+  aggiornaContaSel();
+
+  var lista = TUTTE.filter(function(f) {
+    return !q || (f.nome + " " + f.comune).toLowerCase().indexOf(q) !== -1;
+  }).sort(function(a, b) { return a.nome.localeCompare(b.nome, "it"); });
+
+  if (!lista.length) {
+    el.innerHTML = '<li class="msg">' +
+      (TUTTE.length ? "Nessuna falesia trovata." : "Caricamento falesie…") + "</li>";
+    return;
+  }
+
+  lista.forEach(function(f) {
+    var scelta = PREFERITE.indexOf(f.nome) !== -1;
+    var li = document.createElement("li");
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", scelta ? "true" : "false");
+    b.innerHTML =
+      '<span class="cuore" aria-hidden="true">' + (scelta ? "♥" : "♡") + "</span>" +
+      '<span><span class="nome">' + esc(f.nome) + '</span><br><span class="sub">' + esc(f.comune) + "</span></span>";
+    b.addEventListener("click", function() {
+      var i = PREFERITE.indexOf(f.nome);
+      if (i === -1) PREFERITE.push(f.nome); else PREFERITE.splice(i, 1);
+      salvaPreferite();
+      selezioneCambiata = true;
+      var ora = (i === -1);
+      b.setAttribute("aria-pressed", ora ? "true" : "false");
+      b.querySelector(".cuore").textContent = ora ? "♥" : "♡";
+      aggiornaContaSel();
+    });
+    li.appendChild(b);
+    el.appendChild(li);
+  });
+}
+
 function iniziale(nome) {
   var m = String(nome || "").match(/[A-Za-zÀ-ÿ0-9]/);
   return m ? m[0].toUpperCase() : "?";
@@ -361,6 +464,22 @@ function avvia() {
   document.getElementById("chiudiAbout").addEventListener("click", function() { about.close(); });
   about.addEventListener("click", function(e) { if (e.target === about) about.close(); });
 
+  var selezione = document.getElementById("selezione");
+  document.getElementById("voceFalesie").addEventListener("click", function() {
+    chiudiMenu();
+    apriFalesie();
+  });
+  document.getElementById("chiudiSel").addEventListener("click", function() { selezione.close(); });
+  selezione.addEventListener("click", function(e) { if (e.target === selezione) selezione.close(); });
+  document.getElementById("cercaSel").addEventListener("input", disegnaSelezione);
+  // Alla chiusura, se la selezione è cambiata, ricarica il meteo
+  selezione.addEventListener("close", function() {
+    if (selezioneCambiata) {
+      selezioneCambiata = false;
+      carica();
+    }
+  });
+
   if (!window.matchMedia("(max-width: 800px)").matches) {
     document.getElementById("legDet").setAttribute("open", "");
   }
@@ -378,7 +497,21 @@ async function carica() {
   try {
     var risp = await fetch("falesie.json", { cache: "no-store" });
     if (!risp.ok) throw new Error("falesie.json non trovato (errore " + risp.status + ")");
-    var elenco = await risp.json();
+        TUTTE = await risp.json();
+    if (document.getElementById("selezione").open) disegnaSelezione();
+
+    var elenco = TUTTE.filter(function(f) {
+      return PREFERITE.indexOf(f.nome) !== -1;
+    });
+
+    // Nessuna falesia scelta: niente meteo da calcolare
+    if (!elenco.length) {
+      DATI = [];
+      document.getElementById("agg").textContent = "";
+      aggiorna(false);
+      if (primoAvvio) { primoAvvio = false; apriFalesie(); }
+      return;
+    }
 
     var r = await calcolaMeteo(elenco, function(fatte, totale) {
       el.innerHTML = '<li class="msg">Calcolo meteo… ' + fatte + " di " + totale + " falesie</li>";
@@ -419,7 +552,9 @@ function disegnaElenco() {
   document.getElementById("conta").textContent = lista.length + " di " + DATI.length;
   el.innerHTML = "";
   if (!lista.length) {
-    el.innerHTML = '<li class="msg">Nessuna falesia corrisponde ai filtri.</li>';
+      el.innerHTML = '<li class="msg">' + (DATI.length
+      ? "Nessuna falesia corrisponde ai filtri."
+      : "Nessuna falesia selezionata. Apri il menu ☰ e scegli «Falesie».") + "</li>";
     return;
   }
   lista.forEach(function(f) {
