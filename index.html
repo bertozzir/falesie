@@ -457,7 +457,7 @@ function avvia() {
     o.value = k; o.textContent = LIVELLI[k].nome;
     sel.appendChild(o);
   });
-  sel.addEventListener("change", function() { livello = sel.value; disegnaMappa(false); disegnaLegenda(); });
+  sel.addEventListener("change", function() { livello = sel.value; disegnaElenco(); disegnaMappa(false); disegnaLegenda(); });
 
   var chips = [["tutte", "Tutte"], ["asciutta", "Asciutte"], ["variabile", "Variabili"], ["bagnata", "Bagnate"]];
   var cont = document.getElementById("chips");
@@ -614,11 +614,12 @@ function disegnaElenco() {
   }
   lista.forEach(function(f) {
     var s = statoDa(f.indice);
+    var colore = LIVELLI[livello].col(f);
     var li = document.createElement("li");
     var b = document.createElement("button");
     b.type = "button";
     b.innerHTML =
-      '<span class="dot" style="background:' + s.col + '"></span>' +
+      '<span class="dot" style="background:' + colore + '"></span>' +
       '<span><span class="nome">' + esc(f.nome) + '</span><br><span class="sub">' + esc(f.comune) + "</span></span>" +
       '<span class="tag">' + valoreElenco(f) + "</span>";
     b.addEventListener("click", function() {
