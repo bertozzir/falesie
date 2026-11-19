@@ -81,26 +81,82 @@
     return testo.charAt(0).toUpperCase() + testo.slice(1);
   }
 
-  // Calcola, per ognuno dei prossimi 4 giorni, l'indice a fine giornata
-  // (ore 23) e la pioggia totale prevista in quel giorno.
-  function calcolaGiorni(hFuturo, indiceAdesso, indiceFuturo, giorniData) {
-    var indici = [];
-    var piogge = [];
-    giorniData.forEach(function (giorno, g) {
-      var ultimo = null;
-      var pioggia = 0, ore = 0;
-      for (var i = 0; i < hFuturo.time.length; i++) {
-        var ts = Number(hFuturo.time[i]) * 1000;
-        if (dataIso(ts) !== giorno) continue;
-        if (valido(hFuturo.rain[i])) { pioggia += Math.max(0, hFuturo.rain[i]); ore++; }
-        if (indiceFuturo[ts] !== undefined) ultimo = indiceFuturo[ts];
+  // Calcola, per ognuno dei prossimi 4 giorni:
+  //  - l'indice a fine giornata (ore 23)
+  //  - la precipitazione totale della giornata
+  //  - la pioggia cumulata nelle 72 ore che finiscono a fine giornata
+  //  - temperatura, umidita, vento, radiazione ed evapotraspirazione del giorno
+  function calcolaGiorni(hPassato, hFuturo, indiceAdesso, indiceFuturo, giorniData, oraCorrente) {
+    // 1. Unisco ore passate e ore future in un'unica lista
+    var ore = [];
+    [hPassato, hFuturo].forEach(function (h) {
+      for (var i = 0; i < h.time.length; i++) {
+        var ts = Number(h.time[i]) * 1000;
+        ore.push({
+          ts: ts,
+          giorno: dataIso(ts),
+          rain: valido(h.rain[i]) ? Math.max(0, h.rain[i]) : null,
+          vento: h.wind_speed_10m[i],
+          dir: h.wind_direction_10m[i],
+          evapo: h.evapotranspiration[i],
+          rad: h.shortwave_radiation[i],
+          temp: h.temperature_2m[i],
+          um: h.relative_humidity_2m[i]
+        });
       }
-      // Per "Oggi" se non ci sono ore future uso l'indice attuale
-      if (ultimo === null && g === 0) ultimo = indiceAdesso;
-      indici.push(ultimo === null ? null : Math.round(ultimo));
-      piogge.push(ore > 0 ? arrotonda(pioggia, 1) : null);
     });
-    return { indici: indici, piogge: piogge };
+
+    // Estrae una colonna (per esempio tutte le temperature) da una lista di ore
+    function leggi(lista, campo) {
+      return lista.map(function (o) { return o[campo]; });
+    }
+    // Somma i valori; se non ce n'e' nessuno restituisce null invece di 0
+    function sommaOppureNull(lista) {
+      var v = lista.filter(valido);
+      return v.length ? somma(v) : null;
+    }
+
+    var r = {
+      indici: [], piogge: [], p72: [], temp: [],
+      um: [], vento: [], dir: [], rad: [], evapo: []
+    };
+
+    // 2. Per ogni giorno calcolo tutti i valori
+    giorniData.forEach(function (giorno, g) {
+      var oreGiorno = ore.filter(function (o) { return o.giorno === giorno; });
+
+      // Indice alla fine della giornata (ultima ora prevista di quel giorno)
+      var indice = null;
+      var fineMs = null;
+      oreGiorno.forEach(function (o) {
+        if (indiceFuturo[o.ts] !== undefined) {
+          indice = indiceFuturo[o.ts];
+          fineMs = o.ts;
+        }
+      });
+      // Per "Oggi" se non ci sono ore future uso l'indice attuale
+      if (indice === null && g === 0) {
+        indice = indiceAdesso;
+        fineMs = oraCorrente;
+      }
+
+      // Le 72 ore che finiscono alla fine della giornata
+      var finestra72 = fineMs === null ? [] : ore.filter(function (o) {
+        return o.ts > fineMs - 72 * 3600000 && o.ts <= fineMs;
+      });
+
+      r.indici.push(indice === null ? null : Math.round(indice));
+      r.piogge.push(arrotonda(sommaOppureNull(leggi(oreGiorno, "rain")), 1));
+      r.p72.push(arrotonda(sommaOppureNull(leggi(finestra72, "rain")), 1));
+      r.temp.push(arrotonda(media(leggi(oreGiorno, "temp")), 1));
+      r.um.push(arrotonda(media(leggi(oreGiorno, "um")), 1));
+      r.vento.push(arrotonda(media(leggi(oreGiorno, "vento")), 1));
+      r.dir.push(arrotonda(mediaCircolare(leggi(oreGiorno, "dir")), 0));
+      r.rad.push(arrotonda(media(leggi(oreGiorno, "rad")), 1));
+      r.evapo.push(arrotonda(sommaOppureNull(leggi(oreGiorno, "evapo")), 2));
+    });
+
+    return r;
   }
 
   // Esposizione e quota, per esempio "SSW-700". "Varie" = nessun azimut.
@@ -359,18 +415,18 @@
     // e lo prosegue sulle ore previste (funzione simula di modello.js).
     var sim = Modello.simula(hPassato, hFuturo, falesia);
     var indice = sim.adesso;
-    var gg = calcolaGiorni(hFuturo, indice, sim.futuro, ctx.giorniData);
+    var gg = calcolaGiorni(hPassato, hFuturo, indice, sim.futuro, ctx.giorniData, ctx.oraCorrente);
     return {
-      p72: arrotonda(somma(hPassato.rain), 1),
-      vento: arrotonda(media(hPassato.wind_speed_10m), 1),
-      dir: arrotonda(mediaCircolare(hPassato.wind_direction_10m), 0),
-      evapo: arrotonda(somma(hPassato.evapotranspiration), 2),
-      rad: arrotonda(media(hPassato.shortwave_radiation), 1),
-      temp: arrotonda(media(hPassato.temperature_2m), 1),
-      um: arrotonda(media(hPassato.relative_humidity_2m), 1),
       indice: Math.round(indice),
       indici: gg.indici,
       pioggeGiorno: gg.piogge,
+      p72Giorno: gg.p72,
+      tempGiorno: gg.temp,
+      umGiorno: gg.um,
+      ventoGiorno: gg.vento,
+      dirGiorno: gg.dir,
+      radGiorno: gg.rad,
+      evapoGiorno: gg.evapo,
       stima: descrizioneAsciugatura(indice, hFuturo, falesia, ctx.adessoMs)
     };
   }
