@@ -164,7 +164,17 @@
   }
   #elencoSel button:hover { background: var(--bg); }
   .cuore { font-size: 22px; line-height: 1; color: var(--muted); }
-  #elencoSel button[aria-pressed="true"] .cuore { color: var(--bagnata); }
+    #elencoSel button[aria-pressed="true"] .cuore { color: var(--bagnata); }
+
+  /* Pulsante per aprire/chiudere l'elenco: visibile solo su mobile */
+  .apriChiudi {
+    display: none;
+    width: 100%; align-items: center; justify-content: space-between;
+    border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+    padding: 8px 12px; font-weight: 600; background: var(--panel);
+  }
+  .apriChiudi .freccia { transition: transform .2s; }
+  .app.elencoChiuso .apriChiudi .freccia { transform: rotate(180deg); }
   
   @media (max-width: 800px) {
     .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(220px, 42vh) minmax(0, 1fr); height: 100vh; height: 100dvh; min-height: 560px; }
@@ -175,6 +185,11 @@
     .controllo select { font-size: 16px; padding: 4px 6px; text-overflow: ellipsis; }
     .legDet summary { font-size: 12px; }
     aside { grid-row: 3; border-right: 0; min-height: 0; border-top: 1px solid var(--line); }
+    /* Elenco chiuso: la mappa occupa tutto lo spazio e resta solo la barra del pulsante */
+    .app.elencoChiuso { grid-template-rows: auto 1fr auto; }
+    .app.elencoChiuso .filtri,
+    .app.elencoChiuso #elenco { display: none; }
+    .apriChiudi { display: flex; }
     header { padding: 6px 10px; }
     .filtri { padding: 6px 10px; gap: 6px; }
     #ricarica { font-size: 12px; }
@@ -199,6 +214,10 @@
   </header>
 
   <aside>
+    <button id="apriChiudi" class="apriChiudi" type="button" aria-expanded="true" aria-controls="elenco">
+      <span>Elenco falesie</span>
+      <span class="freccia" aria-hidden="true">▼</span>
+    </button>
     <div class="filtri">
       <input id="cerca" type="search" placeholder="Cerca falesia, sigla provincia o comune" aria-label="Cerca falesia, sigla provincia o comune">
         <div class="riga">
@@ -480,6 +499,16 @@ function avvia() {
 
   document.getElementById("cerca").addEventListener("input", function() { aggiorna(false); });
     document.getElementById("ricarica").addEventListener("click", carica);
+
+  // Apre/chiude l'elenco su mobile
+  var btnElenco = document.getElementById("apriChiudi");
+  btnElenco.addEventListener("click", function() {
+    var app = document.querySelector(".app");
+    var chiuso = app.classList.toggle("elencoChiuso");
+    btnElenco.setAttribute("aria-expanded", chiuso ? "false" : "true");
+    // Leaflet deve sapere che la mappa è cambiata di dimensione
+    setTimeout(function() { mappa.invalidateSize(); }, 50);
+  });
 
   var menuBtn = document.getElementById("menuBtn");
   var menu = document.getElementById("menu");
