@@ -292,31 +292,31 @@ var LIVELLI = {
     nome: "Pioggia del giorno scelto",
     col: function(f) { return f.pg === null || f.pg === undefined ? COL.nd : scala(f.pg, [0.1, 1, 5], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
     testo: function(f) { return f.pg === null || f.pg === undefined ? "?" : f.pg.toFixed(1); },
-    legenda: [[C_GRIGIO, "Nessuna (< 0,1 mm)"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "Oltre 5 mm"]]
+    legenda: [[C_GRIGIO, "0,0 mm)"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "> 5 mm"]]
   },
   p72: {
     nome: "Pioggia ultime 72 ore",
     col: function(f) { return f.p72 === null ? COL.nd : scala(f.p72, [0.5, 5, 20], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
     testo: function(f) { return f.p72 === null ? "?" : f.p72.toFixed(0); },
-    legenda: [[C_GRIGIO, "Meno di 0,5 mm"], ["#5aa9f0", "0,5-5 mm"], ["#2f6fdb", "5-20 mm"], ["#1b3fa8", "Oltre 20 mm"]]
+    legenda: [[C_GRIGIO, "< 0,5 mm"], ["#5aa9f0", "0,5-5 mm"], ["#2f6fdb", "5-20 mm"], ["#1b3fa8", "> 20 mm"]]
   },
   temp: {
     nome: "Temperatura media",
     col: function(f) { return f.temp === null ? COL.nd : scala(f.temp, [5, 15, 25], ["#3b82f6", "#22b8cf", "#f59e0b", "#ef4444"]); },
     testo: function(f) { return f.temp === null ? "?" : f.temp.toFixed(0) + "°"; },
-    legenda: [["#3b82f6", "Sotto 5 °C"], ["#22b8cf", "5-15 °C"], ["#f59e0b", "15-25 °C"], ["#ef4444", "Oltre 25 °C"]]
+    legenda: [["#3b82f6", "< 5 °C"], ["#22b8cf", "5-15 °C"], ["#f59e0b", "15-25 °C"], ["#ef4444", "> 25 °C"]]
   },
   vento: {
     nome: "Vento medio",
     col: function(f) { return f.vento === null ? COL.nd : scala(f.vento, [10, 20, 35], [C_GRIGIO, "#22b8cf", "#3b82f6", "#7c3aed"]); },
     testo: function(f) { return f.vento === null ? "?" : f.vento.toFixed(0); },
-    legenda: [[C_GRIGIO, "Sotto 10 km/h"], ["#22b8cf", "10-20 km/h"], ["#3b82f6", "20-35 km/h"], ["#7c3aed", "Oltre 35 km/h"]]
+    legenda: [[C_GRIGIO, "< 10 km/h"], ["#22b8cf", "10-20 km/h"], ["#3b82f6", "20-35 km/h"], ["#7c3aed", "> 35 km/h"]]
   },
   um: {
     nome: "Umidità media",
     col: function(f) { return f.um === null ? COL.nd : scala(f.um, [50, 70, 85], ["#f59e0b", "#22b8cf", "#3b82f6", "#1b3fa8"]); },
     testo: function(f) { return f.um === null ? "?" : f.um.toFixed(0) + "%"; },
-    legenda: [["#f59e0b", "Sotto 50%"], ["#22b8cf", "50-70%"], ["#3b82f6", "70-85%"], ["#1b3fa8", "Oltre 85%"]]
+    legenda: [["#f59e0b", "< 50%"], ["#22b8cf", "50-70%"], ["#3b82f6", "70-85%"], ["#1b3fa8", "> 85%"]]
   }
 };
 
