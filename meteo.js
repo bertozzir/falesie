@@ -360,9 +360,6 @@
     var sim = Modello.simula(hPassato, hFuturo, falesia);
     var indice = sim.adesso;
     var gg = calcolaGiorni(hFuturo, indice, sim.futuro, ctx.giorniData);
-
-    var pioggia3h = pioggiaNelleProssimeOre(hFuturo, ctx.adessoMs, 3);
-
     return {
       p72: arrotonda(somma(hPassato.rain), 1),
       vento: arrotonda(media(hPassato.wind_speed_10m), 1),
@@ -374,7 +371,6 @@
       indice: Math.round(indice),
       indici: gg.indici,
       pioggeGiorno: gg.piogge,
-      p3h: arrotonda(pioggia3h, 1),
       stima: descrizioneAsciugatura(indice, hFuturo, falesia, ctx.adessoMs)
     };
   }
@@ -422,13 +418,13 @@
             risultati.push(Object.assign({}, f, elabora(f, risposte[0][k], risposte[1][k], ctx)));
           } catch (e) {
             errori.push(f.nome + ": " + e.message);
-            risultati.push(Object.assign({}, f, { indice: null, p3h: null, stima: "Errore nel calcolo" }));
+            risultati.push(Object.assign({}, f, { indice: null, stima: "Errore nel calcolo" }));
           }
         });
       } catch (e) {
         gruppoFalesie.forEach(function (f) {
           errori.push(f.nome + ": " + e.message);
-          risultati.push(Object.assign({}, f, { indice: null, p3h: null, stima: "Errore nel calcolo" }));
+          risultati.push(Object.assign({}, f, { indice: null, stima: "Errore nel calcolo" }));
         });
       }
     }
