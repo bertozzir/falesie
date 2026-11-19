@@ -620,7 +620,7 @@ function disegnaElenco() {
     b.innerHTML =
       '<span class="dot" style="background:' + s.col + '"></span>' +
       '<span><span class="nome">' + esc(f.nome) + '</span><br><span class="sub">' + esc(f.comune) + "</span></span>" +
-      '<span class="tag">' + s.testo + "</span>";
+      '<span class="tag">' + valoreElenco(f) + "</span>";
     b.addEventListener("click", function() {
       mappa.setView([f.lat, f.lon], Math.max(mappa.getZoom(), 11));
       apriScheda(f);
