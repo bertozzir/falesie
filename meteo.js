@@ -71,13 +71,14 @@
     return p.day + "/" + p.month + "/" + p.year + sep + p.hour + ":" + p.minute;
   }
 
-    // Nome del giorno per i pulsanti: "Oggi", "Domani", poi "lun 23", ecc.
+  // Nome del giorno per i pulsanti: "Oggi", poi "Lun 23", ecc.
   function etichettaGiorno(ms, indiceGiorno) {
     if (indiceGiorno === 0) return "Oggi";
-    if (indiceGiorno === 1) return "Domani";
-    return new Date(ms).toLocaleDateString("it-IT", {
+    var testo = new Date(ms).toLocaleDateString("it-IT", {
       timeZone: FUSO, weekday: "short", day: "numeric"
     });
+    // Prima lettera maiuscola: "ven 20" diventa "Ven 20"
+    return testo.charAt(0).toUpperCase() + testo.slice(1);
   }
 
   // Calcola, per ognuno dei prossimi 4 giorni, l'indice a fine giornata
