@@ -1,6 +1,6 @@
 {
-  "name": "Falesie",
-  "short_name": "Falesie",
+  "name": "Meteo Falesie",
+  "short_name": "Meteo Falesie",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
