@@ -319,16 +319,10 @@ var LIVELLI = {
     legenda: [[COL.asciutta, "Asciutta (< 35 %)"], [COL.variabile, "Variabile (35-64 %)"], [COL.bagnata, "Bagnata (> 65 %)"]]
   },
   pg: {
-    nome: "Pioggia del giorno scelto",
+    nome: "Precipitazione totale",
     col: function(f) { return f.pg === null || f.pg === undefined ? COL.nd : scala(f.pg, [0.1, 1, 5], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
     testo: function(f) { return f.pg === null || f.pg === undefined ? "?" : f.pg.toFixed(1); },
     legenda: [[C_GRIGIO, "0,0 mm"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "> 5 mm"]]
-  },
-  p72: {
-    nome: "Pioggia ultime 72 ore",
-    col: function(f) { return f.p72 === null ? COL.nd : scala(f.p72, [0.5, 5, 20], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
-    testo: function(f) { return f.p72 === null ? "?" : f.p72.toFixed(0); },
-    legenda: [[C_GRIGIO, "< 0,5 mm"], ["#5aa9f0", "0,5-5 mm"], ["#2f6fdb", "5-20 mm"], ["#1b3fa8", "> 20 mm"]]
   },
   temp: {
     nome: "Temperatura media",
@@ -360,11 +354,23 @@ var filtroStato = "tutte";
 var GIORNI = [];
 var giornoSel = 0;
 
+// Legge il valore del giorno scelto da una lista (null se non disponibile)
+function valoreGiorno(f, chiave) {
+  return f[chiave] && f[chiave][giornoSel] !== undefined ? f[chiave][giornoSel] : null;
+}
+
 // Copia in ogni falesia i valori del giorno scelto
 function applicaGiorno() {
   DATI.forEach(function(f) {
-    f.indice = f.indici ? f.indici[giornoSel] : null;
-    f.pg = f.pioggeGiorno ? f.pioggeGiorno[giornoSel] : null;
+    f.indice = valoreGiorno(f, "indici");
+    f.pg     = valoreGiorno(f, "pioggeGiorno");
+    f.p72    = valoreGiorno(f, "p72Giorno");
+    f.temp   = valoreGiorno(f, "tempGiorno");
+    f.um     = valoreGiorno(f, "umGiorno");
+    f.vento  = valoreGiorno(f, "ventoGiorno");
+    f.dir    = valoreGiorno(f, "dirGiorno");
+    f.rad    = valoreGiorno(f, "radGiorno");
+    f.evapo  = valoreGiorno(f, "evapoGiorno");
   });
 }
 
@@ -632,11 +638,13 @@ function aggiorna(adattaMappa) {
 function valoreElenco(f) {
   switch (livello) {
     case "pg":    return num(f.pg, 1, "mm");
-    case "p72":   return num(f.p72, 1, "mm");
     case "temp":  return num(f.temp, 1, "°C");
     case "vento": return num(f.vento, 0, "km/h") + frecciaVento(f.dir);
     case "um":    return num(f.um, 0, "%");
-    default:      return statoDa(f.indice).testo;
+    default:
+      // Stato + pioggia cumulata delle 72 ore, per esempio "Bagnata 25 mm"
+      return statoDa(f.indice).testo +
+        (f.p72 !== null && f.p72 !== undefined ? " " + num(f.p72, 0, "mm") : "");
   }
 }
   
@@ -721,16 +729,16 @@ function apriScheda(f) {
     voce("Previsioni", meteoHtml) +
     "</dl>" +
     "<h3>" + esc(GIORNI[giornoSel] || "Oggi") + "</h3><dl>" +
-    voce("Pioggia prevista nella giornata", num(f.pg, 1, "mm")) +
-    "</dl>" +
-    "<h3>Ultime 72 ore</h3><dl>" +
-    voce("Pioggia", num(f.p72, 1, "mm")) +
+    voce("Precipitazione totale", num(f.pg, 1, "mm")) +
+    voce("Pioggia cumulata 72 ore", num(f.p72, 1, "mm")) +
     voce("Temperatura media", num(f.temp, 1, "°C")) +
     voce("Umidità media", num(f.um, 0, "%")) +
     voce("Vento medio", num(f.vento, 1, "km/h")) +
     voce("Direzione vento", num(f.dir, 0, "°") + frecciaVento(f.dir)) +
     voce("Radiazione media", num(f.rad, 0, "W/m²")) +
     voce("Evapotraspirazione", num(f.evapo, 2, "mm")) +
+    "</dl>" +
+    "<h3>Posizione</h3><dl>" +
     voce("Coordinate", f.lat.toFixed(5) + ", " + f.lon.toFixed(5)) +
     "</dl></div>";
 
