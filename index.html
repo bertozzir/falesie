@@ -280,13 +280,13 @@ var LIVELLI = {
     nome: "Falesie",
     col: function(f) { return statoDa(f.indice).col; },
     testo: function(f) { return iniziale(f.nome); },
-    legenda: [[COL.asciutta, "Asciutta (indice < 35)"], [COL.variabile, "Variabile (35-64)"], [COL.bagnata, "Bagnata (65 o più)"]]
+    legenda: [[COL.asciutta, "Asciutta (< 35 %)"], [COL.variabile, "Variabile (35-64 %)"], [COL.bagnata, "Bagnata (> 65 %)"]]
   },
   stato: {
-    nome: "Stato (bagnata / asciutta)",
+    nome: "Stato (bagnata/asciutta)",
     col: function(f) { return statoDa(f.indice).col; },
     testo: function(f) { return f.indice === null ? "?" : String(Math.round(f.indice)); },
-    legenda: [[COL.asciutta, "Asciutta (indice < 35)"], [COL.variabile, "Variabile (35-64)"], [COL.bagnata, "Bagnata (65 o più)"]]
+    legenda: [[COL.asciutta, "Asciutta (< 35 %)"], [COL.variabile, "Variabile (35-64 %)"], [COL.bagnata, "Bagnata (> 65 %)"]]
   },
   pg: {
     nome: "Pioggia del giorno scelto",
