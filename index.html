@@ -126,11 +126,22 @@
   .legenda i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
 
   .pin {
+    position: relative;
     min-width: 26px; height: 26px; padding: 0 5px;
     border-radius: 13px; border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(0,0,0,.45);
     color: #fff; font-size: 11px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
+    white-space: nowrap;
+  }
+  .pinNome {
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    margin-top: 3px;
+    color: #1f2428;
+    font-size: 11px; font-weight: 600;
+    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
     white-space: nowrap;
   }
 
@@ -306,12 +317,6 @@ function frecciaVento(dir) {
 
 // Livelli selezionabili sulla mappa.
 var LIVELLI = {
-  falesie: {
-    nome: "Falesie",
-    col: function(f) { return statoDa(f.indice).col; },
-    testo: function(f) { return iniziale(f.nome); },
-    legenda: [[COL.asciutta, "Asciutta (< 35 %)"], [COL.variabile, "Variabile (35-64 %)"], [COL.bagnata, "Bagnata (> 65 %)"]]
-  },
   stato: {
     nome: "Stato (bagnata/asciutta)",
     col: function(f) { return statoDa(f.indice).col; },
@@ -347,7 +352,7 @@ var LIVELLI = {
 
 var DATI = [];
 var mappa, gruppo, marcatori = [];
-var livello = "falesie";
+var livello = "stato";
 var filtroStato = "tutte";
 
 // Giorni mostrati dai pulsanti e giorno scelto (0 = Oggi)
@@ -685,7 +690,8 @@ function disegnaMappa(adatta) {
   visibili().forEach(function(f) {
     var icona = L.divIcon({
       className: "",
-      html: '<div class="pin" style="background:' + L_.col(f) + '">' + (L_.html ? L_.html(f) : esc(L_.testo(f))) + "</div>",
+        html: '<div class="pin" style="background:' + L_.col(f) + '">' + (L_.html ? L_.html(f) : esc(L_.testo(f))) +
+        '<span class="pinNome">' + esc(f.nome) + "</span></div>",
       iconSize: null, iconAnchor: [14, 14]
     });
     var m = L.marker([f.lat, f.lon], { icon: icona, title: f.nome, keyboard: true });
