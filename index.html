@@ -292,7 +292,7 @@ var LIVELLI = {
     nome: "Pioggia del giorno scelto",
     col: function(f) { return f.pg === null || f.pg === undefined ? COL.nd : scala(f.pg, [0.1, 1, 5], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
     testo: function(f) { return f.pg === null || f.pg === undefined ? "?" : f.pg.toFixed(1); },
-    legenda: [[C_GRIGIO, "0,0 mm)"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "> 5 mm"]]
+    legenda: [[C_GRIGIO, "0,0 mm"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "> 5 mm"]]
   },
   p72: {
     nome: "Pioggia ultime 72 ore",
