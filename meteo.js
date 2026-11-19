@@ -1,6 +1,5 @@
 // ==================================================
 // meteo.js - calcolo dell'indice di bagnatura nel browser
-// Traduzione dello script Google "Meteo_Crags.gs"
 // ==================================================
 (function () {
 
@@ -70,6 +69,37 @@
       hour: "2-digit", minute: "2-digit", hourCycle: "h23"
     }).formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
     return p.day + "/" + p.month + "/" + p.year + sep + p.hour + ":" + p.minute;
+  }
+
+    // Nome del giorno per i pulsanti: "Oggi", "Domani", poi "lun 23", ecc.
+  function etichettaGiorno(ms, indiceGiorno) {
+    if (indiceGiorno === 0) return "Oggi";
+    if (indiceGiorno === 1) return "Domani";
+    return new Date(ms).toLocaleDateString("it-IT", {
+      timeZone: FUSO, weekday: "short", day: "numeric"
+    });
+  }
+
+  // Calcola, per ognuno dei prossimi 4 giorni, l'indice a fine giornata
+  // (ore 23) e la pioggia totale prevista in quel giorno.
+  function calcolaGiorni(hFuturo, indiceAdesso, indiceFuturo, giorniData) {
+    var indici = [];
+    var piogge = [];
+    giorniData.forEach(function (giorno, g) {
+      var ultimo = null;
+      var pioggia = 0, ore = 0;
+      for (var i = 0; i < hFuturo.time.length; i++) {
+        var ts = Number(hFuturo.time[i]) * 1000;
+        if (dataIso(ts) !== giorno) continue;
+        if (valido(hFuturo.rain[i])) { pioggia += Math.max(0, hFuturo.rain[i]); ore++; }
+        if (indiceFuturo[ts] !== undefined) ultimo = indiceFuturo[ts];
+      }
+      // Per "Oggi" se non ci sono ore future uso l'indice attuale
+      if (ultimo === null && g === 0) ultimo = indiceAdesso;
+      indici.push(ultimo === null ? null : Math.round(ultimo));
+      piogge.push(ore > 0 ? arrotonda(pioggia, 1) : null);
+    });
+    return { indici: indici, piogge: piogge };
   }
 
   // Esposizione e quota, per esempio "SSW-700". "Varie" = nessun azimut.
@@ -324,11 +354,11 @@
 
     var hFuturo = serieDaMappa(tempiFuturi, mappaPrevisioni);
 
-    // Ricostruisce l'indice dalle ore piu' vecchie alle piu' recenti.
-    var indice = 0;
-    for (var j = 0; j < hPassato.time.length; j++) {
-      indice = aggiornaIndice(indice, hPassato, j, falesia);
-    }
+    // Ricostruisce l'indice dalle ore piu' vecchie alle piu' recenti
+    // e lo prosegue sulle ore previste (funzione simula di modello.js).
+    var sim = Modello.simula(hPassato, hFuturo, falesia);
+    var indice = sim.adesso;
+    var gg = calcolaGiorni(hFuturo, indice, sim.futuro, ctx.giorniData);
 
     var pioggia3h = pioggiaNelleProssimeOre(hFuturo, ctx.adessoMs, 3);
 
@@ -341,6 +371,8 @@
       temp: arrotonda(media(hPassato.temperature_2m), 1),
       um: arrotonda(media(hPassato.relative_humidity_2m), 1),
       indice: Math.round(indice),
+      indici: gg.indici,
+      pioggeGiorno: gg.piogge,
       p3h: arrotonda(pioggia3h, 1),
       stima: descrizioneAsciugatura(indice, hFuturo, falesia, ctx.adessoMs)
     };
@@ -354,10 +386,17 @@
   window.calcolaMeteo = async function (falesie, progresso) {
     var adessoMs = Date.now();
     var oraCorrente = Math.floor(adessoMs / 3600000) * 3600000;
+    var giorniData = [0, 1, 2, 3].map(function (n) {
+      return dataIso(adessoMs + n * 86400000);
+    });
+    var giorniNomi = giorniData.map(function (d, n) {
+      return etichettaGiorno(adessoMs + n * 86400000, n);
+    });
     var ctx = {
       adessoMs: adessoMs,
       oraCorrente: oraCorrente,
-      inizioPeriodo: oraCorrente - 72 * 3600000
+      inizioPeriodo: oraCorrente - 72 * 3600000,
+      giorniData: giorniData
     };
     var dataInizio = dataIso(ctx.inizioPeriodo);
     var dataFine = dataIso(oraCorrente);
@@ -397,6 +436,7 @@
 
     return {
       aggiornato: dataOraIt(adessoMs, " "),
+      giorni: giorniNomi,
       falesie: risultati,
       errori: errori
     };
