@@ -586,6 +586,21 @@ function aggiorna(adattaMappa) {
   disegnaMappa(adattaMappa);
 }
 
+// Testo mostrato a destra del nome nell'elenco, secondo il menù scelto.
+// Con "Falesie" e "Stato" resta la scritta Bagnata / Variabile / Asciutta.
+function valoreElenco(f) {
+  switch (livello) {
+    case "pg":    return num(f.pg, 1, "mm");
+    case "p72":   return num(f.p72, 1, "mm");
+    case "temp":  return num(f.temp, 1, "°C");
+    case "vento": return num(f.vento, 0, "km/h");
+    case "um":    return num(f.um, 0, "%");
+    default:      return statoDa(f.indice).testo;
+  }
+}
+
+function disegnaElenco() {
+  
 function disegnaElenco() {
   var lista = visibili().slice().sort(function(a, b) { return a.nome.localeCompare(b.nome, "it"); });
   var el = document.getElementById("elenco");
