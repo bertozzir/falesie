@@ -269,7 +269,7 @@
   </div>
   <div class="sch-corpo">
     <p class="sub" style="margin-top:0">Tocca il cuore per scegliere le falesie da seguire. Mappa, elenco e meteo riguarderanno solo quelle.</p>
-    <input id="cercaSel" type="search" placeholder="Cerca falesia o comune" aria-label="Cerca falesia o comune" style="width:100%;margin-bottom:8px">
+    <input id="cercaSel" type="search" placeholder="Cerca falesia, sigla provincia o comune" aria-label="Cerca falesia, sigla provincia o comune" style="width:100%;margin-bottom:8px">
     <ul id="elencoSel"></ul>
   </div>
 </dialog>
@@ -294,6 +294,15 @@ function scala(v, soglie, colori) {
 }
 
 var C_GRIGIO = "#8a9199";
+
+// Disegna una freccia che punta verso dove va il vento.
+// "dir" = gradi da cui arriva il vento (come li dà Open-Meteo).
+function frecciaVento(dir) {
+  if (dir === null || dir === undefined) return "";
+  return '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" ' +
+    'style="transform:rotate(' + dir + 'deg);flex:none;vertical-align:middle;margin-left:3px">' +
+    '<path d="M12 2 L19 20 L12 16 L5 20 Z" fill="currentColor"/></svg>';
+}
 
 // Livelli selezionabili sulla mappa.
 var LIVELLI = {
@@ -331,6 +340,7 @@ var LIVELLI = {
     nome: "Vento medio",
     col: function(f) { return f.vento === null ? COL.nd : scala(f.vento, [10, 20, 35], [C_GRIGIO, "#22b8cf", "#3b82f6", "#7c3aed"]); },
     testo: function(f) { return f.vento === null ? "?" : f.vento.toFixed(0); },
+    html: function(f) { return f.vento === null ? "?" : f.vento.toFixed(0) + frecciaVento(f.dir); },
     legenda: [[C_GRIGIO, "< 10 km/h"], ["#22b8cf", "10-20 km/h"], ["#3b82f6", "20-35 km/h"], ["#7c3aed", "> 35 km/h"]]
   },
   um: {
@@ -624,7 +634,7 @@ function valoreElenco(f) {
     case "pg":    return num(f.pg, 1, "mm");
     case "p72":   return num(f.p72, 1, "mm");
     case "temp":  return num(f.temp, 1, "°C");
-    case "vento": return num(f.vento, 0, "km/h");
+    case "vento": return num(f.vento, 0, "km/h") + frecciaVento(f.dir);
     case "um":    return num(f.um, 0, "%");
     default:      return statoDa(f.indice).testo;
   }
@@ -667,7 +677,7 @@ function disegnaMappa(adatta) {
   visibili().forEach(function(f) {
     var icona = L.divIcon({
       className: "",
-      html: '<div class="pin" style="background:' + L_.col(f) + '">' + esc(L_.testo(f)) + "</div>",
+      html: '<div class="pin" style="background:' + L_.col(f) + '">' + (L_.html ? L_.html(f) : esc(L_.testo(f))) + "</div>",
       iconSize: null, iconAnchor: [14, 14]
     });
     var m = L.marker([f.lat, f.lon], { icon: icona, title: f.nome, keyboard: true });
@@ -718,7 +728,7 @@ function apriScheda(f) {
     voce("Temperatura media", num(f.temp, 1, "°C")) +
     voce("Umidità media", num(f.um, 0, "%")) +
     voce("Vento medio", num(f.vento, 1, "km/h")) +
-    voce("Direzione vento", num(f.dir, 0, "°")) +
+    voce("Direzione vento", num(f.dir, 0, "°") + frecciaVento(f.dir)) +
     voce("Radiazione media", num(f.rad, 0, "W/m²")) +
     voce("Evapotraspirazione", num(f.evapo, 2, "mm")) +
     voce("Coordinate", f.lat.toFixed(5) + ", " + f.lon.toFixed(5)) +
