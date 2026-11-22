@@ -212,7 +212,7 @@
       "?latitude=" + gruppoFalesie.map(function (f) { return f.lat; }).join(",") +
       "&longitude=" + gruppoFalesie.map(function (f) { return f.lon; }).join(",") +
       "&elevation=" + gruppoFalesie.map(function (f) {
-        var q = leggiFalesia(f.esp).quota;
+        var q = Modello.leggiFalesia(f.esp).quota;
         return q === null ? 500 : q;
       }).join(",") +
       "&hourly=" + VARIABILI.join(",") +
@@ -353,7 +353,7 @@
         continue;
       }
 
-      simulato = aggiornaIndice(simulato, previsioni, i, falesia);
+      simulato = Modello.aggiornaIndice(simulato, previsioni, i, falesia);
 
       if (previsioni.rain[i] >= 0.2) {
         simulato = Math.max(simulato, 35);
@@ -381,7 +381,7 @@
   // --------------------------------------------------
 
   function elabora(f, storico, previsione, ctx) {
-    var falesia = leggiFalesia(f.esp);
+    var falesia = Modello.leggiFalesia(f.esp);
 
     if (!valido(f.lat) || !valido(f.lon) || Math.abs(f.lat) > 90 || Math.abs(f.lon) > 180) {
       throw new Error("Coordinate non valide");
