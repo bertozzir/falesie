@@ -390,7 +390,7 @@ function disegnaGiorni() {
       giornoSel = i;
       applicaGiorno();
       disegnaGiorni();
-      aggiorna(false);
+      aggiorna(true);
     });
     el.appendChild(b);
   });
@@ -512,7 +512,7 @@ function avvia() {
       Array.prototype.forEach.call(cont.children, function(x) {
         x.setAttribute("aria-pressed", x.getAttribute("data-k") === filtroStato ? "true" : "false");
       });
-      aggiorna(false);
+      aggiorna(true);
     });
     cont.appendChild(b);
   });
