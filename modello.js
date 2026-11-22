@@ -55,16 +55,12 @@
       var contributoTemperatura = Math.max(0, Math.min(1, (t - 2) / 20));
       var contributoVento = Math.min(1, Math.max(0, vento) / 25);
       var penalitaUmidita = Math.max(0, Math.min(1, (ur - 55) / 45));
-      var quota = falesia.quota === null ? 500 : falesia.quota;
-      var penalitaQuota = Math.max(0, Math.min(0.35, (quota - 500) / 4000));
-
       var asciugatura =
         0.35 +
         1.5 * contributoSole +
         0.7 * contributoTemperatura +
         0.45 * contributoVento -
-        0.8 * penalitaUmidita -
-        0.4 * penalitaQuota;
+        0.8 * penalitaUmidita;
 
       indice -= Math.max(0.05, asciugatura);
     }
