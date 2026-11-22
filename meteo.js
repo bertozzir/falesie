@@ -159,31 +159,9 @@
     return r;
   }
 
-  // Esposizione e quota, per esempio "SSW-700". "Varie" = nessun azimut.
-  function leggiFalesia(valore) {
-    var s = String(valore || "").trim().toUpperCase();
-    var parti = s.split("-");
-    // Accetta anche le sigle italiane: SO diventa SW, O diventa W, ecc.
-    var esposizione = parti[0].trim().replace(/O/g, "W");
-    var quota = parti.length > 1 ? Number(parti[1].trim()) : NaN;
-
-    var direzioni = {
-      N: 0, NNE: 22.5, NE: 45, ENE: 67.5,
-      E: 90, ESE: 112.5, SE: 135, SSE: 157.5,
-      S: 180, SSW: 202.5, SW: 225, WSW: 247.5,
-      W: 270, WNW: 292.5, NW: 315, NNW: 337.5
-    };
-
-    return {
-      quota: valido(quota) && quota >= 0 ? quota : null,
-      azimut: direzioni[esposizione] === undefined ? null : direzioni[esposizione]
-    };
-  }
-
   // --------------------------------------------------
   // RICHIESTE A OPEN-METEO
-  // --------------------------------------------------
-
+  
   function attendi(ms) {
     return new Promise(function (ok) { setTimeout(ok, ms); });
   }
@@ -254,50 +232,6 @@
       serie[v] = tempi.map(function (ts) { return mappa[ts][v]; });
     });
     return serie;
-  }
-
-  // --------------------------------------------------
-  // MODELLO INDICATIVO DI BAGNATURA E ASCIUGATURA
-  // Indice 0 = probabilmente asciutta, 100 = molto bagnata
-  // --------------------------------------------------
-
-  function fattoreEsposizione(azimut) {
-    if (azimut === null) return 1;
-    return 0.70 + 0.30 * Math.max(0, -Math.cos(azimut * Math.PI / 180));
-  }
-
-  function aggiornaIndice(indice, h, i, falesia) {
-    var pioggia = h.rain[i];
-    var t = h.temperature_2m[i];
-    var ur = h.relative_humidity_2m[i];
-    var vento = h.wind_speed_10m[i];
-    var sole = h.shortwave_radiation[i];
-
-    if (valido(pioggia)) {
-      indice += Math.min(35, Math.max(0, pioggia) * 13);
-    }
-    indice = Math.min(100, indice);
-
-    if (valido(t) && valido(ur) && valido(vento) && valido(sole)) {
-      var esposizione = fattoreEsposizione(falesia.azimut);
-      var contributoSole = Math.max(0, sole) / 500 * esposizione;
-      var contributoTemperatura = Math.max(0, Math.min(1, (t - 2) / 20));
-      var contributoVento = Math.min(1, Math.max(0, vento) / 25);
-      var penalitaUmidita = Math.max(0, Math.min(1, (ur - 55) / 45));
-      var quota = falesia.quota === null ? 500 : falesia.quota;
-      var penalitaQuota = Math.max(0, Math.min(0.35, (quota - 500) / 4000));
-
-      var asciugatura =
-        0.35 +
-        1.5 * contributoSole +
-        0.7 * contributoTemperatura +
-        0.45 * contributoVento -
-        0.8 * penalitaUmidita -
-        0.4 * penalitaQuota;
-
-      indice -= Math.max(0.05, asciugatura);
-    }
-    return Math.max(0, Math.min(100, indice));
   }
 
   // Pioggia totale prevista nelle ore indicate (mm). null = dati insufficienti.
