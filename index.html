@@ -375,7 +375,6 @@ function applicaGiorno() {
     f.vento  = valoreGiorno(f, "ventoGiorno");
     f.dir    = valoreGiorno(f, "dirGiorno");
     f.rad    = valoreGiorno(f, "radGiorno");
-    f.evapo  = valoreGiorno(f, "evapoGiorno");
   });
 }
 
@@ -742,7 +741,6 @@ function apriScheda(f) {
     voce("Vento medio", num(f.vento, 1, "km/h")) +
     voce("Direzione vento", num(f.dir, 0, "°") + frecciaVento(f.dir)) +
     voce("Radiazione media", num(f.rad, 0, "W/m²")) +
-    voce("Evapotraspirazione", num(f.evapo, 2, "mm")) +
     "</dl>" +
     "<h3>Posizione</h3><dl>" +
     voce("Coordinate", f.lat.toFixed(5) + ", " + f.lon.toFixed(5)) +
