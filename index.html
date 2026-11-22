@@ -176,6 +176,7 @@
   #elencoSel button:hover { background: var(--bg); }
   .cuore { font-size: 22px; line-height: 1; color: var(--muted); }
     #elencoSel button[aria-pressed="true"] .cuore { color: var(--bagnata); }
+  .azioniSel { display: flex; gap: 8px; margin-bottom: 8px; }
 
   /* Pulsante per aprire/chiudere l'elenco: visibile solo su mobile */
   .apriChiudi {
@@ -281,6 +282,10 @@
   <div class="sch-corpo">
     <p class="sub" style="margin-top:0">Tocca il cuore per scegliere le falesie da seguire. Mappa, elenco e meteo riguarderanno solo quelle.</p>
     <input id="cercaSel" type="search" placeholder="Cerca falesia, sigla provincia o comune" aria-label="Cerca falesia, sigla provincia o comune" style="width:100%;margin-bottom:8px">
+    <div class="azioniSel">
+      <button type="button" id="selTutte">Tutte</button>
+      <button type="button" id="selNessuna">Nessuna</button>
+    </div>
     <ul id="elencoSel"></ul>
   </div>
 </dialog>
@@ -433,6 +438,22 @@ function aggiornaContaSel() {
     PREFERITE.length + " selezionate su " + TUTTE.length;
 }
 
+// Seleziona (true) o deseleziona (false) tutte le falesie visibili nell'elenco
+// della finestra, cioè quelle che corrispondono alla ricerca scritta.
+function impostaTutteSel(valore) {
+  var q = document.getElementById("cercaSel").value.trim().toLowerCase();
+  TUTTE.forEach(function(f) {
+    var visibile = !q || (f.nome + " " + f.comune).toLowerCase().indexOf(q) !== -1;
+    if (!visibile) return;
+    var i = PREFERITE.indexOf(f.nome);
+    if (valore && i === -1) PREFERITE.push(f.nome);
+    if (!valore && i !== -1) PREFERITE.splice(i, 1);
+  });
+  salvaPreferite();
+  selezioneCambiata = true;
+  disegnaSelezione();
+}
+
 function disegnaSelezione() {
   var q = document.getElementById("cercaSel").value.trim().toLowerCase();
   var el = document.getElementById("elencoSel");
@@ -559,6 +580,8 @@ function avvia() {
   document.getElementById("chiudiSel").addEventListener("click", function() { selezione.close(); });
   selezione.addEventListener("click", function(e) { if (e.target === selezione) selezione.close(); });
   document.getElementById("cercaSel").addEventListener("input", disegnaSelezione);
+  document.getElementById("selTutte").addEventListener("click", function() { impostaTutteSel(true); });
+  document.getElementById("selNessuna").addEventListener("click", function() { impostaTutteSel(false); });
   // Alla chiusura, se la selezione è cambiata, ricarica il meteo
   selezione.addEventListener("close", function() {
     if (selezioneCambiata) {
