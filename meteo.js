@@ -12,7 +12,6 @@
     "rain",
     "wind_speed_10m",
     "wind_direction_10m",
-    "evapotranspiration",
     "shortwave_radiation",
     "temperature_2m",
     "relative_humidity_2m"
@@ -85,7 +84,7 @@
   //  - l'indice a fine giornata (ore 23)
   //  - la precipitazione totale della giornata
   //  - la pioggia cumulata nelle 72 ore che finiscono a fine giornata
-  //  - temperatura, umidita, vento, radiazione ed evapotraspirazione del giorno
+  //  - temperatura, umidita, vento e radiazione del giorno
   function calcolaGiorni(hPassato, hFuturo, indiceAdesso, indiceFuturo, giorniData, oraCorrente) {
     // 1. Unisco ore passate e ore future in un'unica lista
     var ore = [];
@@ -98,7 +97,6 @@
           rain: valido(h.rain[i]) ? Math.max(0, h.rain[i]) : null,
           vento: h.wind_speed_10m[i],
           dir: h.wind_direction_10m[i],
-          evapo: h.evapotranspiration[i],
           rad: h.shortwave_radiation[i],
           temp: h.temperature_2m[i],
           um: h.relative_humidity_2m[i]
@@ -118,7 +116,7 @@
 
     var r = {
       indici: [], piogge: [], p72: [], temp: [],
-      um: [], vento: [], dir: [], rad: [], evapo: []
+      um: [], vento: [], dir: [], rad: []
     };
 
     // 2. Per ogni giorno calcolo tutti i valori
@@ -153,7 +151,6 @@
       r.vento.push(arrotonda(media(leggi(oreGiorno, "vento")), 1));
       r.dir.push(arrotonda(mediaCircolare(leggi(oreGiorno, "dir")), 0));
       r.rad.push(arrotonda(media(leggi(oreGiorno, "rad")), 1));
-      r.evapo.push(arrotonda(sommaOppureNull(leggi(oreGiorno, "evapo")), 2));
     });
 
     return r;
@@ -360,7 +357,6 @@
       ventoGiorno: gg.vento,
       dirGiorno: gg.dir,
       radGiorno: gg.rad,
-      evapoGiorno: gg.evapo,
       stima: descrizioneAsciugatura(indice, hFuturo, falesia, ctx.adessoMs)
     };
   }
