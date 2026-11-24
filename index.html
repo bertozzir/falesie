@@ -320,6 +320,17 @@ function frecciaVento(dir) {
     '<path d="M12 2 L19 20 L12 16 L5 20 Z" fill="currentColor"/></svg>';
 }
 
+// Trasforma i gradi (per esempio 200) nella sigla della direzione (per esempio "SSW").
+function gradiInDirezione(gradi) {
+  if (gradi === null || gradi === undefined) return null;
+  var sigle = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+               "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  // Il cerchio è diviso in 16 settori da 22,5 gradi ciascuno.
+  // Il +0.5 serve per scegliere la sigla più vicina (es. 10° -> N, 12° -> NNE).
+  var indice = Math.floor(gradi / 22.5 + 0.5) % 16;
+  return sigle[indice];
+}
+
 // Livelli selezionabili sulla mappa.
 var LIVELLI = {
   stato: {
@@ -743,7 +754,7 @@ function apriScheda(f) {
   var html =
     '<div class="sch-testa"><div><h2 id="schTitolo">' + esc(f.nome) + "</h2>" +
     '<div class="sub">' + esc(f.comune) + "</div>" +
-    '<span class="badge" style="background:' + s.col + '">' + s.testo +
+    '<span class="badge" style="background:' + s.col + '">Stato bagnatura: ' + s.testo +
     (f.indice !== null ? " · indice " + Math.round(f.indice) : "") + "</span></div>" +
     '<button class="chiudi" type="button" id="chiudiScheda">Chiudi</button></div>' +
     '<div class="sch-corpo">' +
@@ -754,16 +765,17 @@ function apriScheda(f) {
     voce("Gradi (da/a)", esc(f.gradi)) +
     voce("Numero di vie", esc(f.vie)) +
     voce("Mi piace", esc(f.mipiace)) +
-    voce("Previsioni", meteoHtml) +
+    voce("Litologia", esc(f.litologia)) +
     "</dl>" +
-    "<h3>" + esc(GIORNI[giornoSel] || "Oggi") + "</h3><dl>" +
+    "<h3>Meteo di " + esc(GIORNI[giornoSel] || "Oggi") + "</h3><dl>" +
     voce("Precipitazione totale", num(f.pg, 1, "mm")) +
     voce("Pioggia cumulata 72 ore", num(f.p72, 1, "mm")) +
     voce("Temperatura media", num(f.temp, 1, "°C")) +
     voce("Umidità media", num(f.um, 0, "%")) +
     voce("Vento medio", num(f.vento, 1, "km/h")) +
-    voce("Direzione vento", num(f.dir, 0, "°") + frecciaVento(f.dir)) +
+    voce("Direzione vento", (gradiInDirezione(f.dir) || "n.d.") + frecciaVento(f.dir)) +
     voce("Radiazione media", num(f.rad, 0, "W/m²")) +
+    voce("Previsioni", meteoHtml) +
     "</dl>" +
     "<h3>Posizione</h3><dl>" +
     voce("Coordinate", f.lat.toFixed(5) + ", " + f.lon.toFixed(5)) +
