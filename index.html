@@ -112,6 +112,14 @@
   .giorni:empty { display: none; }
   .giorni button { flex: 1; padding: 6px 2px; font-size: clamp(11px, 3.2vw, 13px); white-space: nowrap; }
   .giorni button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .oraBar { display: flex; align-items: center; gap: 10px; padding: 6px 10px 8px; background: var(--panel); border-top: 1px solid var(--line); }
+  .oraBar[hidden] { display: none; }
+  .oraBar button { padding: 6px 10px; font-size: 13px; white-space: nowrap; }
+  .oraBar button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .oraSlider { flex: 1; min-width: 0; }
+  .oraSlider input { width: 100%; margin: 0; padding: 0; border: 0; accent-color: var(--accent); }
+  .oraTacche { display: flex; justify-content: space-between; padding: 0 6px; font-size: 11px; color: var(--muted); }
+  #oraEtichetta { min-width: 52px; text-align: right; font-weight: 600; font-size: 13px; }
   .controllo {
     position: absolute; z-index: 500; top: 10px; right: 10px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
@@ -243,6 +251,14 @@
   <div class="mappaWrap">
     <div id="map"></div>
     <div class="giorni" id="giorni"></div>
+    <div class="oraBar" id="oraBar" hidden>
+      <button type="button" id="btnAdesso" aria-pressed="true">Adesso</button>
+      <div class="oraSlider">
+        <input type="range" id="oraRange" min="0" max="7" step="1" value="4" aria-label="Ora della giornata">
+        <div class="oraTacche" aria-hidden="true"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
+      </div>
+      <output id="oraEtichetta" for="oraRange"></output>
+    </div>
     <div class="controllo">
       <label for="livello">Mostra sulla mappa</label>
       <select id="livello"></select>
@@ -375,6 +391,51 @@ var filtroStato = "tutte";
 var GIORNI = [];
 var giornoSel = 0;
 
+// Orari dello slider. oraSel = -1 significa "Adesso"; altrimenti è la
+// posizione 0-7 dello slider (0 = ore 0, 1 = ore 3, ... 7 = ore 21).
+var ORE_SLOT = [0, 3, 6, 9, 12, 15, 18, 21];
+var oraSel = -1;
+
+// Ora attuale (0-23), presa dai dati meteo
+function oraAttuale() {
+  for (var i = 0; i < DATI.length; i++) {
+    if (DATI[i].adesso && DATI[i].adesso.ora !== null) return DATI[i].adesso.ora;
+  }
+  return new Date().getHours();
+}
+
+// Testo tipo "12:00"
+function formatoOra(h) {
+  return ("0" + h).slice(-2) + ":00";
+}
+
+// Copia in ogni falesia indice e pioggia 72 ore dell'orario scelto
+function applicaOra() {
+  DATI.forEach(function(f) {
+    var s = null;
+    if (oraSel === -1) {
+      s = f.adesso || null;
+    } else if (f.slot && f.slot[giornoSel]) {
+      s = f.slot[giornoSel][oraSel] || null;
+    }
+    f.indice = s ? s.indice : null;
+    f.p72 = s ? s.p72 : null;
+  });
+}
+
+// Aggiorna lo slider, il pulsante "Adesso" e l'etichetta
+function disegnaOra() {
+  var barra = document.getElementById("oraBar");
+  var haSlot = DATI.some(function(f) { return f.slot; });
+  barra.hidden = !haSlot;
+  if (!haSlot) return;
+  var adesso = (oraSel === -1);
+  var pos = adesso ? Math.min(7, Math.round(oraAttuale() / 3)) : oraSel;
+  document.getElementById("oraRange").value = pos;
+  document.getElementById("btnAdesso").setAttribute("aria-pressed", adesso ? "true" : "false");
+  document.getElementById("oraEtichetta").textContent = adesso ? "Adesso" : formatoOra(ORE_SLOT[oraSel]);
+}
+
 // Legge il valore del giorno scelto da una lista (null se non disponibile)
 function valoreGiorno(f, chiave) {
   return f[chiave] && f[chiave][giornoSel] !== undefined ? f[chiave][giornoSel] : null;
@@ -392,6 +453,7 @@ function applicaGiorno() {
     f.dir    = valoreGiorno(f, "dirGiorno");
     f.rad    = valoreGiorno(f, "radGiorno");
   });
+  applicaOra();
 }
 
 function disegnaGiorni() {
@@ -404,8 +466,10 @@ function disegnaGiorni() {
     b.setAttribute("aria-pressed", i === giornoSel ? "true" : "false");
     b.addEventListener("click", function() {
       giornoSel = i;
+      oraSel = (i === 0) ? -1 : 4;
       applicaGiorno();
       disegnaGiorni();
+      disegnaOra();
       aggiorna(true);
     });
     el.appendChild(b);
@@ -550,7 +614,22 @@ function avvia() {
   });
 
   document.getElementById("cerca").addEventListener("input", function() { aggiorna(false); });
-    document.getElementById("ricarica").addEventListener("click", carica);
+  document.getElementById("ricarica").addEventListener("click", carica);
+
+  document.getElementById("oraRange").addEventListener("input", function() {
+    oraSel = Number(this.value);
+    applicaGiorno();
+    disegnaOra();
+    aggiorna(false);
+  });
+  document.getElementById("btnAdesso").addEventListener("click", function() {
+    giornoSel = 0;
+    oraSel = -1;
+    applicaGiorno();
+    disegnaGiorni();
+    disegnaOra();
+    aggiorna(false);
+  });
 
   // Apre/chiude l'elenco su mobile
   var btnElenco = document.getElementById("apriChiudi");
@@ -628,6 +707,7 @@ async function carica() {
     // Nessuna falesia scelta: niente meteo da calcolare
     if (!elenco.length) {
       DATI = [];
+      disegnaOra();
       document.getElementById("agg").textContent = "";
       aggiorna(false);
       if (primoAvvio) { primoAvvio = false; apriFalesie(); }
@@ -640,9 +720,10 @@ async function carica() {
 
     DATI = r.falesie || [];
     GIORNI = r.giorni || [];
-    if (giornoSel >= GIORNI.length) giornoSel = 0;
+    if (giornoSel >= GIORNI.length) { giornoSel = 0; oraSel = -1; }
     applicaGiorno();
     disegnaGiorni();
+    disegnaOra();
     var testo = r.aggiornato;
     if (r.errori && r.errori.length) {
       testo += " · " + r.errori.length + " con errori";
@@ -755,7 +836,8 @@ function apriScheda(f) {
     '<div class="sch-testa"><div><h2 id="schTitolo">' + esc(f.nome) + "</h2>" +
     '<div class="sub">' + esc(f.comune) + "</div>" +
     '<span class="badge" style="background:' + s.col + '">Stato bagnatura: ' + s.testo +
-    (f.indice !== null ? " · indice " + Math.round(f.indice) : "") + "</span></div>" +
+    (f.indice !== null ? " · indice " + Math.round(f.indice) : "") +
+    " · " + (oraSel === -1 ? "adesso" : "ore " + formatoOra(ORE_SLOT[oraSel])) + "</span></div>" +
     '<button class="chiudi" type="button" id="chiudiScheda">Chiudi</button></div>' +
     '<div class="sch-corpo">' +
     '<div class="stima"><strong>Asciugatura</strong><br>' + (esc(f.stima) || "Stima non disponibile") + "</div>" +
@@ -769,7 +851,7 @@ function apriScheda(f) {
     "</dl>" +
     "<h3>Meteo di " + esc(GIORNI[giornoSel] || "Oggi") + "</h3><dl>" +
     voce("Precipitazione totale", num(f.pg, 1, "mm")) +
-    voce("Pioggia cumulata 72 ore", num(f.p72, 1, "mm")) +
+    voce("Pioggia 72 ore (fino all'ora scelta)", num(f.p72, 1, "mm")) +
     voce("Temperatura media", num(f.temp, 1, "°C")) +
     voce("Umidità media", num(f.um, 0, "%")) +
     voce("Vento medio", num(f.vento, 1, "km/h")) +
