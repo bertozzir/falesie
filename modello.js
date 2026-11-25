@@ -71,10 +71,13 @@
   // Restituisce:
   //   adesso  = indice all'ora corrente
   //   futuro  = mappa { timestamp in millisecondi : indice } per ogni ora prevista
+  //   passato = mappa { timestamp : indice } per ogni ora trascorsa
   function simula(hPassato, hFuturo, falesia) {
     var indice = 0;
+    var passato = {};
     for (var j = 0; j < hPassato.time.length; j++) {
       indice = aggiornaIndice(indice, hPassato, j, falesia);
+      passato[Number(hPassato.time[j]) * 1000] = indice;
     }
     var adesso = indice;
 
@@ -83,7 +86,7 @@
       indice = aggiornaIndice(indice, hFuturo, i, falesia);
       futuro[Number(hFuturo.time[i]) * 1000] = indice;
     }
-    return { adesso: adesso, futuro: futuro };
+    return { adesso: adesso, passato: passato, futuro: futuro };
   }
 
   window.Modello = {
