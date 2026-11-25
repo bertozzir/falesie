@@ -126,7 +126,7 @@
       return v.length ? somma(v) : null;
     }
 
-        // Primo istante per cui abbiamo dati (serve a sapere se le 72 ore sono complete)
+    // Primo istante per cui abbiamo dati (serve a sapere se le 72 ore sono complete)
     var inizioDati = ore.reduce(function (m, o) { return Math.min(m, o.ts); }, Infinity);
 
     // Prepara i valori di UN istante: indice, pioggia delle 3 ore che finiscono
@@ -207,7 +207,7 @@
     r.adesso = oAdesso ? istante(oAdesso, indiceAdesso) : null;
 
     return r;
-
+  }
   // --------------------------------------------------
   // RICHIESTE A OPEN-METEO
   
