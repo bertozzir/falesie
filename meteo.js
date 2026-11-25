@@ -242,7 +242,9 @@
         var q = Modello.leggiFalesia(f.esp).quota;
         return q === null ? 500 : q;
       }).join(",") +
-      "&hourly=" + VARIABILI.join(",") +
+      "&hourly=" + VARIABILI.map(function (v) {
+        return v === "rain" ? "precipitation" : v;
+      }).join(",") +
       "&timezone=" + encodeURIComponent(FUSO) +
       "&timeformat=unixtime" +
       parametri;
@@ -255,6 +257,9 @@
     }
     return elenco.map(function (x) {
       if (!x.hourly || !x.hourly.time) throw new Error("Serie orarie non disponibili");
+      // Usiamo la precipitazione totale (pioggia + rovesci + neve in mm),
+      // ma nel resto del programma la chiamiamo "rain".
+      x.hourly.rain = x.hourly.precipitation;
       return x.hourly;
     });
   }
