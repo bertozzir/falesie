@@ -70,6 +70,17 @@
     return p.day + "/" + p.month + "/" + p.year + sep + p.hour + ":" + p.minute;
   }
 
+  // Ora del giorno (0-23) nel fuso italiano.
+  function oraDelGiorno(ms) {
+    var parti = new Intl.DateTimeFormat("it-IT", {
+      timeZone: FUSO, hour: "2-digit", hourCycle: "h23"
+    }).formatToParts(new Date(ms));
+    for (var i = 0; i < parti.length; i++) {
+      if (parti[i].type === "hour") return Number(parti[i].value);
+    }
+    return null;
+  }
+  
   // Nome del giorno per i pulsanti: "Oggi", poi "Lun 23", ecc.
   function etichettaGiorno(ms, indiceGiorno) {
     if (indiceGiorno === 0) return "Oggi";
@@ -85,7 +96,7 @@
   //  - la precipitazione totale della giornata
   //  - la pioggia cumulata nelle 72 ore che finiscono a fine giornata
   //  - temperatura, umidita, vento e radiazione del giorno
-  function calcolaGiorni(hPassato, hFuturo, indiceAdesso, indiceFuturo, giorniData, oraCorrente) {
+  function calcolaGiorni(hPassato, hFuturo, indiceAdesso, indiceFuturo, giorniData, oraCorrente, indiciOrari) {
     // 1. Unisco ore passate e ore future in un'unica lista
     var ore = [];
     [hPassato, hFuturo].forEach(function (h) {
@@ -94,6 +105,7 @@
         ore.push({
           ts: ts,
           giorno: dataIso(ts),
+          h: oraDelGiorno(ts),
           rain: valido(h.rain[i]) ? Math.max(0, h.rain[i]) : null,
           vento: h.wind_speed_10m[i],
           dir: h.wind_direction_10m[i],
@@ -114,9 +126,38 @@
       return v.length ? somma(v) : null;
     }
 
+        // Primo istante per cui abbiamo dati (serve a sapere se le 72 ore sono complete)
+    var inizioDati = ore.reduce(function (m, o) { return Math.min(m, o.ts); }, Infinity);
+
+    // Prepara i valori di UN istante: indice, pioggia delle 3 ore che finiscono
+    // a quell'ora, pioggia delle 72 ore, e i valori meteo di quell'ora.
+    function istante(o, indice) {
+      var ultime3 = ore.filter(function (x) {
+        return x.ts > o.ts - 3 * 3600000 && x.ts <= o.ts;
+      });
+      var ultime72 = ore.filter(function (x) {
+        return x.ts > o.ts - 72 * 3600000 && x.ts <= o.ts;
+      });
+      // Se i dati non coprono tutte le 72 ore, meglio dire "n.d." che un numero sbagliato
+      var finestraCompleta = inizioDati <= o.ts - 71 * 3600000;
+      return {
+        ts: o.ts,
+        ora: o.h,
+        indice: valido(indice) ? Math.round(indice) : null,
+        pioggia: arrotonda(sommaOppureNull(leggi(ultime3, "rain")), 1),
+        p72: finestraCompleta ? arrotonda(sommaOppureNull(leggi(ultime72, "rain")), 1) : null,
+        temp: arrotonda(o.temp, 1),
+        um: arrotonda(o.um, 1),
+        vento: arrotonda(o.vento, 1),
+        dir: arrotonda(o.dir, 0),
+        rad: arrotonda(o.rad, 1)
+      };
+    }
+
     var r = {
       indici: [], piogge: [], p72: [], temp: [],
-      um: [], vento: [], dir: [], rad: []
+      um: [], vento: [], dir: [], rad: [],
+      slot: [], adesso: null
     };
 
     // 2. Per ogni giorno calcolo tutti i valori
@@ -151,10 +192,21 @@
       r.vento.push(arrotonda(media(leggi(oreGiorno, "vento")), 1));
       r.dir.push(arrotonda(mediaCircolare(leggi(oreGiorno, "dir")), 0));
       r.rad.push(arrotonda(media(leggi(oreGiorno, "rad")), 1));
+
+      // Gli 8 slot di questo giorno: ore 0, 3, 6, 9, 12, 15, 18, 21
+      var slotGiorno = [];
+      [0, 3, 6, 9, 12, 15, 18, 21].forEach(function (h) {
+        var o = oreGiorno.filter(function (x) { return x.h === h; })[0];
+        slotGiorno.push(o ? istante(o, indiciOrari[o.ts]) : null);
+      });
+      r.slot.push(slotGiorno);
     });
 
+    // Lo stato dell'ora corrente (servirà al pulsante "Adesso")
+    var oAdesso = ore.filter(function (x) { return x.ts === oraCorrente; })[0];
+    r.adesso = oAdesso ? istante(oAdesso, indiceAdesso) : null;
+
     return r;
-  }
 
   // --------------------------------------------------
   // RICHIESTE A OPEN-METEO
@@ -346,7 +398,8 @@
     // e lo prosegue sulle ore previste (funzione simula di modello.js).
     var sim = Modello.simula(hPassato, hFuturo, falesia);
     var indice = sim.adesso;
-    var gg = calcolaGiorni(hPassato, hFuturo, indice, sim.futuro, ctx.giorniData, ctx.oraCorrente);
+    var indiciOrari = Object.assign({}, sim.passato, sim.futuro);
+    var gg = calcolaGiorni(hPassato, hFuturo, indice, sim.futuro, ctx.giorniData, ctx.oraCorrente, indiciOrari);
     return {
       indice: Math.round(indice),
       indici: gg.indici,
@@ -357,6 +410,8 @@
       ventoGiorno: gg.vento,
       dirGiorno: gg.dir,
       radGiorno: gg.rad,
+      slot: gg.slot,
+      adesso: gg.adesso,
       stima: descrizioneAsciugatura(indice, hFuturo, falesia, ctx.adessoMs)
     };
   }
