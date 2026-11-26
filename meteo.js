@@ -361,7 +361,7 @@
     if (oreValide === 0) {
       return "Stima impossibile: dati previsionali insufficienti";
     }
-    return "Stimata asciutta entro " + dataOraIt(ultimoTimestampPrevisione, " alle ");
+    return "Non asciutta entro " + dataOraIt(ultimoTimestampPrevisione, " alle ");
   }
 
   // --------------------------------------------------
