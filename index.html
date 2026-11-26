@@ -884,7 +884,7 @@ function apriScheda(f) {
   var html =
     '<div class="sch-testa"><div><h2 id="schTitolo">' + esc(f.nome) + "</h2>" +
     '<div class="sub">' + esc(f.comune) + "</div>" +
-    '<span class="badge" style="background:' + s.col + '">Stato bagnatura: ' + s.testo +
+    '<span class="badge" style="background:' + s.col + '">Stato: ' + s.testo +
     (f.indice !== null ? " · indice " + Math.round(f.indice) : "") +
     " · " + (oraSel === -1 ? "adesso" : "ore " + formatoOra(ORE_SLOT[oraSel])) + "</span></div>" +
     '<button class="chiudi" type="button" id="chiudiScheda">Chiudi</button></div>' +
