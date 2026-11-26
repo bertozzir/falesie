@@ -262,8 +262,8 @@
         <button type="button" id="btnGiorno" aria-pressed="false">Giorno</button>
       </div>
       <div class="oraSlider">
-        <input type="range" id="oraRange" min="0" max="7" step="1" value="4" aria-label="Ora della giornata">
-        <div class="oraTacche" aria-hidden="true"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
+        <input type="range" id="oraRange" min="0" max="8" step="1" value="4" aria-label="Ora della giornata">
+        <div class="oraTacche" aria-hidden="true"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span><span>23</span></div>
       </div>
     </div>
     <div class="controllo">
@@ -421,7 +421,7 @@ var giornoSel = 0;
 
 // Orari dello slider. oraSel = -1 significa "Adesso"; altrimenti è la
 // posizione 0-7 dello slider (0 = ore 0, 1 = ore 3, ... 7 = ore 21).
-var ORE_SLOT = [0, 3, 6, 9, 12, 15, 18, 21];
+var ORE_SLOT = [0, 3, 6, 9, 12, 15, 18, 21, 23];
 var oraSel = -1;
 // false = modalità "3 ore" (slider attivo), true = modalità "Giorno" (valori giornalieri)
 var modoGiorno = false;
@@ -477,7 +477,7 @@ function disegnaOra() {
   barra.hidden = !haSlot;
   if (!haSlot) return;
   var adesso = (oraSel === -1);
-  var pos = adesso ? Math.min(7, Math.round(oraAttuale() / 3)) : oraSel;
+  var pos = adesso ? Math.min(8, Math.round(oraAttuale() / 3)) : oraSel;
   var range = document.getElementById("oraRange");
   range.value = pos;
   range.disabled = modoGiorno;
