@@ -7,6 +7,7 @@
   var URL_STORICO = "https://historical-forecast-api.open-meteo.com/v1/forecast";
   var URL_PREVISIONI = "https://api.open-meteo.com/v1/forecast";
   var DIM_GRUPPO = 10; // falesie per ogni richiesta
+  var ORE_STORICO = 120; // ore di storico da scaricare (5 giorni)
 
   var VARIABILI = [
     "rain",
@@ -388,7 +389,7 @@
       .sort(function (a, b) { return a - b; });
 
     if (!tempiPassati.length) {
-      throw new Error("Nessun dato disponibile nelle ultime 72 ore");
+      throw new Error("Nessun dato disponibile nello storico");
     }
 
     var hPassato = serieDaMappa(tempiPassati, mappaStorico);
@@ -438,7 +439,7 @@
     var ctx = {
       adessoMs: adessoMs,
       oraCorrente: oraCorrente,
-      inizioPeriodo: oraCorrente - 72 * 3600000,
+      inizioPeriodo: oraCorrente - ORE_STORICO * 3600000,
       giorniData: giorniData
     };
     var dataInizio = dataIso(ctx.inizioPeriodo);
