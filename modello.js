@@ -6,6 +6,10 @@
 // ==================================================
 (function () {
 
+  // Quanto velocemente asciuga la falesia. 1 = come prima (lento).
+  // Prova 2 o 2,5. Più è alto, più asciuga in fretta.
+  var VELOCITA_ASCIUGATURA = 1;
+
   function valido(v) {
     return typeof v === "number" && isFinite(v);
   }
@@ -62,7 +66,7 @@
         0.45 * contributoVento -
         0.8 * penalitaUmidita;
 
-      indice -= Math.max(0.05, asciugatura);
+        indice -= Math.max(0.05, asciugatura) * VELOCITA_ASCIUGATURA;
     }
     return Math.max(0, Math.min(100, indice));
   }
@@ -93,7 +97,15 @@
     valido: valido,
     leggiFalesia: leggiFalesia,
     aggiornaIndice: aggiornaIndice,
-    simula: simula
+    simula: simula,
+    // Cambia la velocità di asciugatura (chiamata dalla casella nella pagina)
+    impostaVelocita: function (v) {
+      if (valido(v) && v > 0) VELOCITA_ASCIUGATURA = v;
+    },
+    // Restituisce il valore in uso
+    leggiVelocita: function () {
+      return VELOCITA_ASCIUGATURA;
+    }
   };
 
 })();
