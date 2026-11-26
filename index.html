@@ -120,6 +120,9 @@
   .oraBar button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .oraSlider { flex: 1; min-width: 0; }
   .oraSlider input { width: 100%; margin: 0; padding: 0; border: 0; accent-color: var(--accent); }
+  .modo { display: flex; gap: 4px; }
+  .oraSlider.spento { opacity: .4; }
+  .oraSlider input:disabled { cursor: not-allowed; }
   .oraTacche { display: flex; justify-content: space-between; padding: 0 6px; font-size: 11px; color: var(--muted); }
   .controllo {
     position: absolute; z-index: 500; top: 10px; right: 10px;
@@ -254,7 +257,10 @@
     <div id="map"></div>
     <div class="giorni" id="giorni"></div>
     <div class="oraBar" id="oraBar" hidden>
-      <button type="button" id="btnAdesso" aria-pressed="true">Adesso</button>
+      <div class="modo" role="group" aria-label="Modalità di visualizzazione">
+        <button type="button" id="btnOre" aria-pressed="true">3 ore</button>
+        <button type="button" id="btnGiorno" aria-pressed="false">Giorno</button>
+      </div>
       <div class="oraSlider">
         <input type="range" id="oraRange" min="0" max="7" step="1" value="4" aria-label="Ora della giornata">
         <div class="oraTacche" aria-hidden="true"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
@@ -374,10 +380,14 @@ var LIVELLI = {
     legenda: [[COL.asciutta, "Asciutta (< 35 %)"], [COL.variabile, "Variabile (35-64 %)"], [COL.bagnata, "Bagnata (> 65 %)"]]
   },
   pg: {
-    nome: "Precipitazione (3 ore)",
-    col: function(f) { return f.mPg === null || f.mPg === undefined ? COL.nd : scala(f.mPg, [0.1, 1, 5], [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]); },
+    nome: "Precipitazione",
+    col: function(f) {
+      var soglie = modoGiorno ? [0.5, 5, 20] : [0.1, 1, 5];
+      return f.mPg === null || f.mPg === undefined ? COL.nd : scala(f.mPg, soglie, [C_GRIGIO, "#5aa9f0", "#2f6fdb", "#1b3fa8"]);
+    },
     testo: function(f) { return f.mPg === null || f.mPg === undefined ? "?" : f.mPg.toFixed(1); },
-    legenda: [[C_GRIGIO, "0,0 mm"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "> 5 mm"]]
+    legenda: [[C_GRIGIO, "< 0,1 mm (3 ore)"], ["#5aa9f0", "0,1-1 mm"], ["#2f6fdb", "1-5 mm"], ["#1b3fa8", "> 5 mm"]],
+    legendaGiorno: [[C_GRIGIO, "< 0,5 mm (giorno)"], ["#5aa9f0", "0,5-5 mm"], ["#2f6fdb", "5-20 mm"], ["#1b3fa8", "> 20 mm"]]
   },
   temp: {
     nome: "Temperatura",
@@ -413,6 +423,8 @@ var giornoSel = 0;
 // posizione 0-7 dello slider (0 = ore 0, 1 = ore 3, ... 7 = ore 21).
 var ORE_SLOT = [0, 3, 6, 9, 12, 15, 18, 21];
 var oraSel = -1;
+// false = modalità "3 ore" (slider attivo), true = modalità "Giorno" (valori giornalieri)
+var modoGiorno = false;
 
 // Ora attuale (0-23), presa dai dati meteo
 function oraAttuale() {
@@ -430,7 +442,18 @@ function formatoOra(h) {
 // Copia in ogni falesia indice e pioggia 72 ore dell'orario scelto
 function applicaOra() {
   DATI.forEach(function(f) {
+    // Modalità "Giorno": uso i valori giornalieri già calcolati da applicaGiorno
+    // (indice a fine giornata, pioggia totale, medie di temperatura, umidità, vento)
+    if (modoGiorno) {
+      f.mPg    = f.pg;
+      f.mTemp  = f.temp;
+      f.mUm    = f.um;
+      f.mVento = f.vento;
+      f.mDir   = f.dir;
+      return;
+    }
     var s = null;
+    
     if (oraSel === -1) {
       s = f.adesso || null;
     } else if (f.slot && f.slot[giornoSel]) {
@@ -455,8 +478,12 @@ function disegnaOra() {
   if (!haSlot) return;
   var adesso = (oraSel === -1);
   var pos = adesso ? Math.min(7, Math.round(oraAttuale() / 3)) : oraSel;
-  document.getElementById("oraRange").value = pos;
-  document.getElementById("btnAdesso").setAttribute("aria-pressed", adesso ? "true" : "false");
+  var range = document.getElementById("oraRange");
+  range.value = pos;
+  range.disabled = modoGiorno;
+  document.querySelector(".oraSlider").classList.toggle("spento", modoGiorno);
+  document.getElementById("btnOre").setAttribute("aria-pressed", modoGiorno ? "false" : "true");
+  document.getElementById("btnGiorno").setAttribute("aria-pressed", modoGiorno ? "true" : "false");
 }
 
 // Legge il valore del giorno scelto da una lista (null se non disponibile)
@@ -645,12 +672,20 @@ function avvia() {
     disegnaOra();
     aggiorna(false);
   });
-  document.getElementById("btnAdesso").addEventListener("click", function() {
-    giornoSel = 0;
-    oraSel = -1;
+  document.getElementById("btnOre").addEventListener("click", function() {
+    modoGiorno = false;
+    // Tornando a "3 ore": oggi = ora attuale, altri giorni = ore 12
+    oraSel = (giornoSel === 0) ? -1 : 4;
     applicaGiorno();
-    disegnaGiorni();
     disegnaOra();
+    disegnaLegenda();
+    aggiorna(false);
+  });
+  document.getElementById("btnGiorno").addEventListener("click", function() {
+    modoGiorno = true;
+    applicaGiorno();
+    disegnaOra();
+    disegnaLegenda();
     aggiorna(false);
   });
 
@@ -867,7 +902,9 @@ function disegnaMappa(adatta) {
 
 function disegnaLegenda() {
   var el = document.getElementById("legenda");
-  el.innerHTML = LIVELLI[livello].legenda.map(function(r) {
+  var livelloAttivo = LIVELLI[livello];
+  var righe = (modoGiorno && livelloAttivo.legendaGiorno) ? livelloAttivo.legendaGiorno : livelloAttivo.legenda;
+  el.innerHTML = righe.map(function(r) {
     return '<span><i style="background:' + r[0] + '"></i>' + r[1] + "</span>";
   }).join("");
 }
@@ -886,7 +923,7 @@ function apriScheda(f) {
     '<div class="sub">' + esc(f.comune) + "</div>" +
     '<span class="badge" style="background:' + s.col + '">Stato: ' + s.testo +
     (f.indice !== null ? " · indice " + Math.round(f.indice) : "") +
-    " · " + (oraSel === -1 ? "adesso" : "ore " + formatoOra(ORE_SLOT[oraSel])) + "</span></div>" +
+    " · " + (modoGiorno ? "fine giornata" : (oraSel === -1 ? "adesso" : "ore " + formatoOra(ORE_SLOT[oraSel]))) + "</span></div>" +
     '<button class="chiudi" type="button" id="chiudiScheda">Chiudi</button></div>' +
     '<div class="sch-corpo">' +
     '<div class="stima"><strong>Asciugatura</strong><br>' + (esc(f.stima) || "Stima non disponibile") + "</div>" +
@@ -900,7 +937,7 @@ function apriScheda(f) {
     "</dl>" +
     "<h3>Meteo di " + esc(GIORNI[giornoSel] || "Oggi") + "</h3><dl>" +
     voce("Precipitazione totale", num(f.pg, 1, "mm")) +
-    voce("Pioggia 72 ore fino alle " + (oraSel === -1 ? formatoOra(oraAttuale()) : formatoOra(ORE_SLOT[oraSel])), num(f.p72, 1, "mm")) +
+    voce(modoGiorno ? "Pioggia 72 ore fino a fine giornata" : "Pioggia 72 ore fino alle " + (oraSel === -1 ? formatoOra(oraAttuale()) : formatoOra(ORE_SLOT[oraSel])), num(f.p72, 1, "mm")) +
     voce("Temperatura media", num(f.temp, 1, "°C")) +
     voce("Umidità media", num(f.um, 0, "%")) +
     voce("Vento medio", num(f.vento, 1, "km/h")) +
