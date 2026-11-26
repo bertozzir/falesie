@@ -878,7 +878,7 @@ function apriScheda(f) {
     "</dl>" +
     "<h3>Meteo di " + esc(GIORNI[giornoSel] || "Oggi") + "</h3><dl>" +
     voce("Precipitazione totale", num(f.pg, 1, "mm")) +
-    voce("Pioggia 72 ore (fino all'ora scelta)", num(f.p72, 1, "mm")) +
+    voce("Pioggia 72 ore fino alle " + (oraSel === -1 ? formatoOra(oraAttuale()) : formatoOra(ORE_SLOT[oraSel])), num(f.p72, 1, "mm")) +
     voce("Temperatura media", num(f.temp, 1, "°C")) +
     voce("Umidità media", num(f.um, 0, "%")) +
     voce("Vento medio", num(f.vento, 1, "km/h")) +
