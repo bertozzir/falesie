@@ -193,9 +193,9 @@
       r.dir.push(arrotonda(mediaCircolare(leggi(oreGiorno, "dir")), 0));
       r.rad.push(arrotonda(media(leggi(oreGiorno, "rad")), 1));
 
-      // Gli 8 slot di questo giorno: ore 0, 3, 6, 9, 12, 15, 18, 21
+      // I 9 slot di questo giorno: ore 0, 3, 6, 9, 12, 15, 18, 21, 23
       var slotGiorno = [];
-      [0, 3, 6, 9, 12, 15, 18, 21].forEach(function (h) {
+      [0, 3, 6, 9, 12, 15, 18, 21, 23].forEach(function (h) {
         var o = oreGiorno.filter(function (x) { return x.h === h; })[0];
         slotGiorno.push(o ? istante(o, indiciOrari[o.ts]) : null);
       });
