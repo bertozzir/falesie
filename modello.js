@@ -32,7 +32,7 @@
   }
 
   function fattoreEsposizione(azimut) {
-    if (azimut === null) return 1;
+    if (azimut === null) return 0.80;
     return 0.70 + 0.30 * Math.max(0, -Math.cos(azimut * Math.PI / 180));
   }
 
