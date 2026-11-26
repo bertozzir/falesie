@@ -60,6 +60,8 @@
   header { position: relative; }
   .iconBtn { display: flex; align-items: center; padding: 6px 8px; }
   .titolo { margin: 0; font-size: 18px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .calib { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .calib input { width: 62px; padding: 3px 6px; }
   #ricarica { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
   #ricarica .ico { display: block; }
   #ricarica:disabled { cursor: progress; }
@@ -226,6 +228,10 @@
       <button type="button" id="voceAbout">About</button>
     </div>
     <h1 class="titolo">Meteo Falesie</h1>
+    <label class="calib" title="Velocità di asciugatura: 1 = lenta, valori più alti = la falesia asciuga prima">
+      Asciug. ×
+      <input id="velAsc" type="number" min="0.5" max="6" step="0.5" inputmode="decimal">
+    </label>
     <button id="ricarica" type="button" title="Ricarica i dati" aria-label="Ricarica i dati">
       <svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span id="agg"></span>
@@ -687,6 +693,24 @@ function avvia() {
     document.getElementById("legDet").setAttribute("open", "");
   }
   
+  // Velocità di asciugatura: la casella nell'intestazione la cambia,
+  // e il valore viene ricordato dal browser.
+  var casella = document.getElementById("velAsc");
+  var salvata = 0;
+  try { salvata = Number(localStorage.getItem("velocitaAsciugatura")); } catch (e) {}
+  if (salvata > 0) Modello.impostaVelocita(salvata);
+  casella.value = Modello.leggiVelocita();
+  casella.addEventListener("change", function() {
+    var v = Number(casella.value);
+    if (!(v > 0)) {                       // valore vuoto o non valido: torno al precedente
+      casella.value = Modello.leggiVelocita();
+      return;
+    }
+    Modello.impostaVelocita(v);
+    try { localStorage.setItem("velocitaAsciugatura", String(v)); } catch (e) {}
+    carica();                             // ricalcola tutto con il nuovo valore
+  });
+
   disegnaLegenda();
   carica();
   window.addEventListener("resize", function() { mappa.invalidateSize(); });
